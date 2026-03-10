@@ -6,35 +6,61 @@
     <title>Pachinko Ultra: Fever Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        :root { --neon: #00ffcc; --fever: #ff00ff; }
+        :root { --neon: #00ffcc; --fever: #ff00ff; --gold: #ffcc00; }
         body {
             margin: 0; background: #050505; color: white;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex; flex-direction: column; align-items: center;
             height: 100vh; overflow: hidden;
         }
-        #game-wrapper {
-            position: relative; transform-origin: top center;
-            margin-top: 10px; transition: filter 0.3s;
-        }
+        
+        /* UI Bar */
         #ui {
-            width: 600px; padding: 15px; background: #111;
+            width: 600px; padding: 12px; background: #111;
             border: 2px solid #333; display: flex;
             justify-content: space-around; align-items: center;
             box-shadow: 0 0 20px rgba(0,0,0,1); z-index: 5;
         }
-        .stat { text-align: center; }
-        .label { font-size: 10px; color: #666; text-transform: uppercase; }
+        .stat { text-align: center; min-width: 80px; }
+        .label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
         .value { font-size: 24px; font-weight: bold; color: var(--neon); }
         .fever-active .value { color: var(--fever); text-shadow: 0 0 10px var(--fever); }
         
+        /* Buttons */
+        .btn {
+            background: #222; border: 1px solid #444; color: #fff;
+            padding: 8px 15px; cursor: pointer; font-size: 12px;
+            text-transform: uppercase; transition: 0.2s;
+        }
+        .btn:hover { background: #333; border-color: var(--neon); }
+
+        #game-wrapper {
+            position: relative; transform-origin: top center;
+            margin-top: 10px;
+        }
+        
         #fever-overlay {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
             font-size: 80px; font-weight: 900; color: var(--fever);
             text-shadow: 0 0 30px var(--fever); display: none; pointer-events: none;
-            z-index: 100; font-style: italic;
+            z-index: 100; font-style: italic; letter-spacing: -5px;
         }
+        
         canvas { border: 2px solid #333; border-top: none; cursor: crosshair; }
+
+        /* Instructions Modal */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+        #modal {
+            background: #1a1a1a; padding: 30px; width: 400px;
+            border: 2px solid var(--neon); box-shadow: 0 0 30px rgba(0,255,204,0.2);
+        }
+        #modal h2 { color: var(--neon); margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        #modal ul { padding-left: 20px; color: #ccc; line-height: 1.6; }
+        #modal li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -43,17 +69,33 @@
         <div class="stat"><div class="label">Best</div><div class="value" id="highScoreVal">0</div></div>
         <div class="stat"><div class="label">Score</div><div class="value" id="scoreVal">0</div></div>
         <div class="stat"><div class="label">Balls</div><div class="value" id="ballsLeft">10</div></div>
+        <button class="btn" onclick="toggleModal(true)">Instructions</button>
     </div>
 
     <div id="game-wrapper">
         <div id="fever-overlay">FEVER!</div>
     </div>
 
+    <div id="modal-overlay" onclick="toggleModal(false)">
+        <div id="modal" onclick="event.stopPropagation()">
+            <h2>HOW TO PLAY</h2>
+            <ul>
+                <li>Click anywhere on the board to drop a ball.</li>
+                <li>You have <strong>10 balls</strong> to get the highest score.</li>
+                <li><strong>Neon Bumpers</strong> give a massive speed boost!</li>
+                <li>Land in the <strong>500 Jackpot</strong> to trigger <strong>FEVER MODE</strong>.</li>
+                <li>Fever Mode: +5 Extra Balls and 2x Score for 10 seconds.</li>
+            </ul>
+            <button class="btn" style="width:100%; margin-top:10px;" onclick="toggleModal(false)">Got it!</button>
+        </div>
+    </div>
+
     <script>
         const config = {
             width: 600, height: 800,
             pinRadius: 3, ballRadius: 7, bumperRadius: 20,
-            rows: 16, cols: 20, initialBalls: 10
+            rows: 16, cols: 20, initialBalls: 10,
+            bucketTop: 720 // Pins stop above this Y coordinate
         };
 
         let score = 0, ballsLeft = config.initialBalls, activeBalls = 0;
@@ -65,7 +107,7 @@
         const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
         const engine = Engine.create();
         
-        // --- CCD / Stability Optimizations ---
+        // CCD Stability
         engine.positionIterations = 10; 
         engine.velocityIterations = 10;
 
@@ -78,7 +120,7 @@
         Render.run(render);
         Runner.run(Runner.create(), engine);
 
-        // --- Layout Construction ---
+        // Walls
         const walls = [
             Bodies.rectangle(300, 0, 600, 20, { isStatic: true, render: { fillStyle: '#222' } }),
             Bodies.rectangle(0, 400, 20, 800, { isStatic: true, render: { fillStyle: '#222' } }),
@@ -86,59 +128,67 @@
         ];
         Composite.add(engine.world, walls);
 
+        // Bumpers
         const bumpers = [
-            {x:120, y:200}, {x:480, y:200}, {x:300, y:400}, {x:150, y:600}, {x:450, y:600}
+            {x:120, y:200}, {x:480, y:200}, {x:300, y:380}, {x:150, y:580}, {x:450, y:580}
         ].map(p => Bodies.circle(p.x, p.y, config.bumperRadius, {
             isStatic: true, restitution: 1.8, label: 'bumper',
             render: { fillStyle: '#000', strokeStyle: '#00ffcc', lineWidth: 4 }
         }));
         Composite.add(engine.world, bumpers);
 
+        // Grid (Fixed logic: skips pins in bucket area)
         const spacingX = config.width / config.cols;
-        const spacingY = 42;
+        const spacingY = 40;
         for (let r = 0; r < config.rows; r++) {
+            const y = 120 + r * spacingY;
+            if (y >= config.bucketTop) continue; // STOP HERE: Ensures buckets are empty
+
             for (let c = 0; c < config.cols; c++) {
                 let x = c * spacingX + spacingX/2;
                 if (r % 2) x += spacingX/2;
-                if (x > 30 && x < 570 && !bumpers.some(b => Math.hypot(b.position.x-x, b.position.y-(120+r*spacingY)) < 45)) {
-                    Composite.add(engine.world, Bodies.circle(x, 120+r*spacingY, config.pinRadius, {
+                if (x > 30 && x < 570 && !bumpers.some(b => Math.hypot(b.position.x-x, b.position.y-y) < 45)) {
+                    Composite.add(engine.world, Bodies.circle(x, y, config.pinRadius, {
                         isStatic: true, restitution: 0.8, label: 'pin', render: { fillStyle: '#333' }
                     }));
                 }
             }
         }
 
+        // Buckets
         const buckets = [5, 20, 100, 500, 100, 20, 5].map((s, i) => {
             const w = config.width / 7;
             const x = i * w + w/2;
             const sensor = Bodies.rectangle(x, 785, w-10, 30, { 
                 isStatic: true, isSensor: true, label: 'bucket', scoreVal: s,
-                render: { fillStyle: s === 500 ? '#ffcc00' : '#444', opacity: 0.4 } 
+                render: { fillStyle: s === 500 ? '#ffcc00' : '#00ffcc', opacity: 0.2 } 
             });
-            Composite.add(engine.world, [sensor, Bodies.rectangle(x-w/2, 750, 4, 100, { isStatic: true, render: { fillStyle: '#222' }})]);
+            Composite.add(engine.world, [
+                sensor, 
+                Bodies.rectangle(x-w/2, 750, 4, 120, { isStatic: true, render: { fillStyle: '#222' }})
+            ]);
             return sensor;
         });
 
-        // --- Custom Bloom & UI Rendering ---
+        // Bright Rendering
         Events.on(render, 'afterRender', () => {
             const ctx = render.context;
             ctx.save();
             
-            // Bloom Effect
-            ctx.shadowBlur = isFever ? 25 : 12;
-            ctx.shadowColor = isFever ? '#ff00ff' : '#00ffcc';
-            
             buckets.forEach(b => {
-                ctx.fillStyle = b.render.fillStyle;
-                ctx.globalAlpha = 0.8;
-                ctx.font = 'bold 16px Arial';
+                const color = b.scoreVal === 500 ? '#ffcc00' : '#00ffcc';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = color;
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 1.0; // Max Brightness
+                ctx.font = 'bold 20px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(isFever ? b.scoreVal * 2 : b.scoreVal, b.position.x, b.position.y - 15);
             });
             ctx.restore();
         });
 
-        // --- Game Logic ---
+        // Collisions
         Events.on(engine, 'collisionStart', (event) => {
             event.pairs.forEach(pair => {
                 const pin = pair.bodyA.label === 'pin' || pair.bodyA.label === 'bumper' ? pair.bodyA : (pair.bodyB.label === 'pin' || pair.bodyB.label === 'bumper' ? pair.bodyB : null);
@@ -151,12 +201,9 @@
                 const bucket = pair.bodyA.label === 'bucket' ? pair.bodyA : (pair.bodyB.label === 'bucket' ? pair.bodyB : null);
 
                 if (ball && bucket) {
-                    let gain = isFever ? bucket.scoreVal * 2 : bucket.scoreVal;
-                    score += gain;
+                    score += isFever ? bucket.scoreVal * 2 : bucket.scoreVal;
                     document.getElementById('scoreVal').innerText = score;
-                    
                     if (bucket.scoreVal === 500) startFever();
-                    
                     Composite.remove(engine.world, ball);
                     activeBalls--;
                     if (ballsLeft === 0 && activeBalls === 0) endGame();
@@ -171,7 +218,6 @@
             document.getElementById('ballsLeft').innerText = ballsLeft;
             document.getElementById('ui').classList.add('fever-active');
             document.getElementById('fever-overlay').style.display = 'block';
-            
             clearTimeout(feverTimer);
             feverTimer = setTimeout(() => {
                 isFever = false;
@@ -185,32 +231,32 @@
                 localStorage.setItem('ultra_pachinko_best', score);
                 alert("NEW HIGH SCORE: " + score);
             } else {
-                alert("Game Over! Score: " + score);
+                alert("Game Over! Final Score: " + score);
             }
             location.reload();
         }
 
-        // --- Responsive Scaling ---
+        function toggleModal(show) {
+            document.getElementById('modal-overlay').style.display = show ? 'flex' : 'none';
+        }
+
         function handleResize() {
             const wrapper = document.getElementById('game-wrapper');
-            const scale = Math.min(window.innerWidth / 620, (window.innerHeight - 120) / 820);
+            const scale = Math.min(window.innerWidth / 640, (window.innerHeight - 150) / 840);
             wrapper.style.transform = `scale(${scale})`;
         }
         window.addEventListener('resize', handleResize);
         handleResize();
 
         window.addEventListener('mousedown', (e) => {
-            if (ballsLeft > 0) {
+            if (ballsLeft > 0 && e.target.tagName !== 'BUTTON' && document.getElementById('modal-overlay').style.display !== 'flex') {
                 const rect = render.canvas.getBoundingClientRect();
                 const scale = rect.width / config.width;
                 const x = (e.clientX - rect.left) / scale;
                 if (x > 20 && x < 580) {
-                    const ball = Bodies.circle(x, 40, config.ballRadius, {
-                        restitution: 0.5, label: 'ball', render: { fillStyle: '#fff' }
-                    });
+                    const ball = Bodies.circle(x, 40, config.ballRadius, { restitution: 0.5, label: 'ball', render: { fillStyle: '#fff' } });
                     Composite.add(engine.world, ball);
-                    ballsLeft--;
-                    activeBalls++;
+                    ballsLeft--; activeBalls++;
                     document.getElementById('ballsLeft').innerText = ballsLeft;
                 }
             }
