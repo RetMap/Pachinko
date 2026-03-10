@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Pachinko</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+        canvas {
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border: 4px solid #333;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+        #ui {
+            padding: 15px;
+            text-align: center;
+        }
+        .score-board {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ffcc;
+            text-shadow: 0 0 10px #00ffcc;
+        }
+        .controls {
+            font-size: 14px;
+            color: #888;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="score-board">SCORE: <span id="scoreVal">0</span></div>
+        <div class="controls">Click anywhere on the board to drop a ball</div>
+    </div>
+
+    <script>
+        // --- Game Configuration ---
+        const config = {
+            width: 600,
+            height: 800,
+            pinRadius: 4,
+            ballRadius: 8,
+            rows: 10,
+            cols: 12,
+            buckets: [
+                { label: '10', score: 10, color: '#ff4d4d' },
+                { label: '50', score: 50, color: '#ff9900' },
+                { label: '100', score: 100, color: '#00ffcc' },
+                { label: '50', score: 50, color: '#ff9900' },
+                { label: '10', score: 10, color: '#ff4d4d' }
+            ]
+        };
+
+        let score = 0;
+        const scoreEl = document.getElementById('scoreVal');
+
+        // --- Matter.js Setup ---
+        const { Engine, Render, Runner, Bodies, Composite, Events, Body } = Matter;
+
+        const engine = Engine.create();
+        const world = engine.world;
+
+        const render = Render.create({
+            element: document.body,
+            engine: engine,
+            options: {
+                width: config.width,
+                height: config.height,
+                wireframes: false,
+                background: '#121212'
+            }
+        });
+
+        Render.run(render);
+        const runner = Runner.create();
+        Runner.run(runner, engine);
+
+        // --- Boundaries ---
+        const walls = [
+            Bodies.rectangle(config.width/2, 0, config.width, 20, { isStatic: true, render: { fillStyle: '#333' } }), // Top
+            Bodies.rectangle(0, config.height/2, 20, config.height, { isStatic: true, render: { fillStyle: '#333' } }), // Left
+            Bodies.rectangle(config.width, config.height/2, 20, config.height, { isStatic: true, render: { fillStyle: '#333' } }), // Right
+        ];
+        Composite.add(world, walls);
+
+        // --- Pins Layout ---
+        const pins = [];
+        const spacingX = config.width / config.cols;
+        const spacingY = 50;
+
+        for (let r = 0; r < config.rows; r++) {
+            for (let c = 0; c < config.cols; c++) {
+                let x = c * spacingX + spacingX / 2;
+                // Offset every other row
+                if (r % 2 === 1) x += spacingX / 2;
+                
+                if (x < config.width - 20 && x > 20) {
+                    const pin = Bodies.circle(x, 150 + (r * spacingY), config.pinRadius, {
+                        isStatic: true,
+                        label: 'pin',
+                        render: { fillStyle: '#555' }
+                    });
+                    pins.push(pin);
+                }
+            }
+        }
+        Composite.add(world, pins);
+
+        // --- Buckets ---
+        const bucketWidth = config.width / config.buckets.length;
+        config.buckets.forEach((b, i) => {
+            const x = i * bucketWidth + bucketWidth / 2;
+            // Floor sensors
+            const sensor = Bodies.rectangle(x, config.height - 10, bucketWidth - 10, 20, {
+                isStatic: true,
+                isSensor: true,
+                label: 'bucket',
+                scoreValue: b.score,
+                render: { fillStyle: b.color, opacity: 0.3 }
+            });
+            // Visual Dividers
+            const divider = Bodies.rectangle(x - bucketWidth/2, config.height - 40, 4, 80, { 
+                isStatic: true, 
+                render: { fillStyle: '#333' } 
+            });
+            
+            Composite.add(world, [sensor, divider]);
+        });
+
+        // --- Collision Events ---
+        Events.on(engine, 'collisionStart', (event) => {
+            event.pairs.forEach((pair) => {
+                // Light up pins
+                if (pair.bodyA.label === 'pin') flashPin(pair.bodyA);
+                if (pair.bodyB.label === 'pin') flashPin(pair.bodyB);
+
+                // Score buckets
+                checkBucket(pair.bodyA, pair.bodyB);
+            });
+        });
+
+        function flashPin(pin) {
+            pin.render.fillStyle = '#fff';
+            setTimeout(() => {
+                pin.render.fillStyle = '#555';
+            }, 100);
+        }
+
+        function checkBucket(bodyA, bodyB) {
+            const ball = bodyA.label === 'ball' ? bodyA : (bodyB.label === 'ball' ? bodyB : null);
+            const bucket = bodyA.label === 'bucket' ? bodyA : (bodyB.label === 'bucket' ? bodyB : null);
+
+            if (ball && bucket) {
+                score += bucket.scoreValue;
+                scoreEl.innerText = score;
+                // Visual feedback for bucket
+                bucket.render.opacity = 1;
+                setTimeout(() => bucket.render.opacity = 0.3, 200);
+                // Remove ball
+                Composite.remove(world, ball);
+            }
+        }
+
+        // --- Interaction ---
+        window.addEventListener('mousedown', (e) => {
+            const rect = render.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            // Limit drop height
+            const y = 40; 
+
+            if (x > 0 && x < config.width) {
+                const ball = Bodies.circle(x, y, config.ballRadius, {
+                    restitution: 0.6, // Bounciness
+                    friction: 0.001,
+                    label: 'ball',
+                    render: { fillStyle: '#00ffcc' }
+                });
+                Composite.add(world, ball);
+            }
+        });
+
+    </script>
+</body>
+</html>
