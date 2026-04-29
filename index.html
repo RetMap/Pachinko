@@ -2,265 +2,2259 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pachinko Ultra Mobile</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Neon Pachinko 〜 ネオンパチンコ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@300;400;600;800&family=Noto+Sans+JP:wght@500;700;900&family=VT323&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        :root { --neon: #00ffcc; --fever: #ff00ff; --gold: #ffcc00; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body {
-            margin: 0; background: #050505; color: white;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            display: flex; flex-direction: column; align-items: center;
-            height: 100vh; overflow: hidden;
-            /* Prevents pull-to-refresh and gestures */
-            touch-action: none; 
+        :root {
+            --bg-deep: #0a0420;
+            --bg-mid: #1a0b3d;
+            --bg-card: #15082e;
+            --sakura: #ff6b9d;
+            --hot-pink: #ff1493;
+            --magenta: #ff00ff;
+            --cyan: #00f0ff;
+            --gold: #ffd700;
+            --neon-green: #39ff14;
+            --imperial-red: #e60012;
+            --lantern: #ff9500;
+            --text-soft: #e8e8ff;
+            --text-dim: #8888aa;
+            --border: rgba(255, 105, 180, 0.3);
         }
-        
-        /* UI Bar - Scaled for thumb-friendly interaction */
-        #ui {
-            width: 100%; max-width: 600px; padding: 10px; background: #111;
-            border-bottom: 2px solid #333; display: flex;
-            justify-content: space-around; align-items: center;
-            z-index: 5;
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
         }
-        .stat { text-align: center; }
-        .label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-        .value { font-size: 20px; font-weight: bold; color: var(--neon); }
-        .fever-active .value { color: var(--fever); text-shadow: 0 0 10px var(--fever); }
-        
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-deep);
+            color: var(--text-soft);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow: hidden;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        /* === Animated Background === */
+        #bg-stars {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 10%, rgba(255, 20, 147, 0.18) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(0, 240, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 70%),
+                linear-gradient(180deg, #0a0420 0%, #1a0b3d 50%, #0a0420 100%);
+            z-index: -2;
+        }
+        #bg-stars::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(1px 1px at 20px 30px, white, transparent),
+                radial-gradient(1px 1px at 60px 70px, white, transparent),
+                radial-gradient(1px 1px at 100px 40px, white, transparent),
+                radial-gradient(2px 2px at 130px 80px, rgba(255,255,255,0.6), transparent),
+                radial-gradient(1px 1px at 170px 30px, white, transparent),
+                radial-gradient(1px 1px at 210px 100px, white, transparent),
+                radial-gradient(2px 2px at 250px 50px, rgba(0,240,255,0.6), transparent),
+                radial-gradient(1px 1px at 290px 90px, white, transparent),
+                radial-gradient(1px 1px at 330px 20px, white, transparent),
+                radial-gradient(1px 1px at 370px 60px, white, transparent);
+            background-size: 400px 200px;
+            background-repeat: repeat;
+            opacity: 0.4;
+            animation: twinkle 8s ease-in-out infinite alternate;
+        }
+        @keyframes twinkle {
+            0% { opacity: 0.2; }
+            100% { opacity: 0.6; }
+        }
+
+        /* Sakura petals */
+        .sakura {
+            position: fixed;
+            top: -20px;
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #ffc0d8, var(--sakura));
+            border-radius: 12px 0 12px 0;
+            opacity: 0.7;
+            z-index: -1;
+            pointer-events: none;
+            box-shadow: 0 0 8px rgba(255, 107, 157, 0.5);
+            animation: sakura-fall linear infinite;
+        }
+        @keyframes sakura-fall {
+            0%   { transform: translateY(0)     translateX(0)  rotate(0deg);  opacity: 0; }
+            10%  { opacity: 0.8; }
+            100% { transform: translateY(110vh) translateX(40px) rotate(720deg); opacity: 0; }
+        }
+
+        /* Screens */
+        .screen {
+            position: fixed;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px 16px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .screen.active { display: flex; }
+        .screen.active.center { justify-content: center; }
+
+        /* Title */
+        .title-block { text-align: center; margin: 30px 0 20px; position: relative; }
+        .title-jp {
+            font-family: 'Noto Sans JP', sans-serif;
+            font-weight: 900;
+            font-size: 16px;
+            color: var(--sakura);
+            letter-spacing: 8px;
+            margin-bottom: 4px;
+            text-shadow: 0 0 20px rgba(255, 107, 157, 0.7);
+        }
+        .title-main {
+            font-family: 'Bungee', cursive;
+            font-size: clamp(36px, 9vw, 56px);
+            line-height: 1;
+            background: linear-gradient(180deg, #fff 0%, var(--gold) 40%, var(--hot-pink) 80%, var(--magenta) 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 18px rgba(255, 20, 147, 0.6));
+            letter-spacing: 1px;
+        }
+        .title-sub {
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            color: var(--cyan);
+            letter-spacing: 4px;
+            margin-top: 6px;
+            text-transform: uppercase;
+        }
+
+        /* Cards */
+        .card {
+            width: 100%; max-width: 420px;
+            background: linear-gradient(135deg, rgba(26, 11, 61, 0.85), rgba(21, 8, 46, 0.85));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 14px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .card h3 {
+            font-family: 'Bungee', cursive;
+            margin: 0 0 12px;
+            font-size: 14px;
+            color: var(--cyan);
+            letter-spacing: 2px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card h3::before {
+            content: '';
+            width: 8px; height: 8px;
+            background: var(--hot-pink);
+            box-shadow: 0 0 10px var(--hot-pink);
+            border-radius: 50%;
+        }
+
+        /* Buttons */
         .btn {
-            background: #222; border: 1px solid #444; color: #fff;
-            padding: 10px 15px; cursor: pointer; font-size: 11px;
-            text-transform: uppercase; border-radius: 4px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 14px 22px;
+            font-family: 'Bungee', cursive;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border: none; border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.2s ease;
+            text-decoration: none;
+            color: white;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--hot-pink), var(--magenta));
+            box-shadow: 0 4px 20px rgba(255, 20, 147, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 240, 255, 0.05));
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+        }
+        .btn-ghost {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            color: var(--text-soft);
+        }
+        .btn-block { width: 100%; }
+        .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-row > * { flex: 1; min-width: 120px; }
+
+        /* Inputs */
+        .field-label {
+            display: block; font-size: 11px; color: var(--text-dim);
+            text-transform: uppercase; letter-spacing: 2px;
+            margin-bottom: 6px; font-weight: 600;
+        }
+        .field-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            color: var(--text-soft);
+            padding: 12px 14px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px; font-weight: 600;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field-input:focus {
+            border-color: var(--hot-pink);
+            box-shadow: 0 0 0 3px rgba(255, 20, 147, 0.2);
+        }
+
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stat-tile {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-tile .label {
+            font-size: 10px; color: var(--text-dim);
+            text-transform: uppercase; letter-spacing: 1.5px;
+            margin-bottom: 4px;
+        }
+        .stat-tile .value {
+            font-family: 'VT323', monospace;
+            font-size: 26px; color: var(--cyan); line-height: 1;
+        }
+        .stat-tile.gold .value { color: var(--gold); }
+        .stat-tile.pink .value { color: var(--hot-pink); }
+
+        /* Leaderboard */
+        .lb-row {
+            display: grid; grid-template-columns: 32px 1fr auto;
+            gap: 10px; align-items: center;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border-left: 3px solid transparent;
+        }
+        .lb-row.me { border-left-color: var(--hot-pink); background: rgba(255, 20, 147, 0.08); }
+        .lb-row .rank { font-family: 'Bungee', cursive; font-size: 16px; color: var(--text-dim); text-align: center; }
+        .lb-row.r1 .rank { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
+        .lb-row.r2 .rank { color: #c0c0c0; }
+        .lb-row.r3 .rank { color: #cd7f32; }
+        .lb-row .name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lb-row .score { font-family: 'VT323', monospace; font-size: 20px; color: var(--cyan); }
+        .lb-row.r1 .score { color: var(--gold); }
+
+        .empty-msg { text-align: center; padding: 24px; color: var(--text-dim); font-style: italic; font-size: 14px; }
+
+        /* Achievement */
+        .ach-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            opacity: 0.5;
+        }
+        .ach-row.unlocked { opacity: 1; background: rgba(255, 215, 0, 0.08); }
+        .ach-icon {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .ach-row.unlocked .ach-icon { background: linear-gradient(135deg, var(--gold), var(--lantern)); }
+        .ach-info { flex: 1; min-width: 0; }
+        .ach-info .t { font-weight: 700; font-size: 13px; color: var(--text-soft); }
+        .ach-row.unlocked .ach-info .t { color: var(--gold); }
+        .ach-info .d { font-size: 11px; color: var(--text-dim); }
+
+        /* === GAME SCREEN === */
+        #game-screen { padding: 0; overflow: hidden; height: 100vh; height: 100dvh; }
+
+        #hud {
+            width: 100%;
+            background: linear-gradient(180deg, var(--bg-mid), var(--bg-deep));
+            border-bottom: 2px solid var(--hot-pink);
+            box-shadow: 0 2px 20px rgba(255, 20, 147, 0.3);
+            padding: 8px 8px;
+            display: flex; align-items: center; justify-content: space-between; gap: 4px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .hud-stat { text-align: center; min-width: 0; flex: 1; }
+        .hud-stat .l {
+            font-size: 9px; color: var(--text-dim);
+            letter-spacing: 1px; text-transform: uppercase; font-weight: 600;
+        }
+        .hud-stat .v {
+            font-family: 'VT323', monospace;
+            font-size: 22px; color: var(--cyan); line-height: 1;
+            transition: color 0.3s;
+        }
+        .hud-stat.score .v { color: var(--gold); }
+        .hud-stat.balls .v { color: var(--hot-pink); }
+        .hud-stat.combo .v { color: var(--neon-green); display: none; }
+        .hud-stat.combo.show .v { display: block; animation: combo-pulse 0.4s ease; }
+        body.fever .hud-stat .v { color: var(--magenta) !important; text-shadow: 0 0 12px var(--magenta); }
+        @keyframes combo-pulse {
+            0% { transform: scale(1.4); }
+            100% { transform: scale(1); }
+        }
+
+        .hud-btn {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Bungee', cursive;
+            flex-shrink: 0;
+            padding: 0;
+        }
+
+        #game-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            width: 100%;
+            min-height: 0;
+            padding: 4px 0;
         }
 
         #game-wrapper {
-            position: relative; transform-origin: top center;
-            margin-top: 5px;
+            position: relative;
+            transform-origin: top center;
+            flex-shrink: 0;
         }
-        
-        #fever-overlay {
-            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 60px; font-weight: 900; color: var(--fever);
-            text-shadow: 0 0 30px var(--fever); display: none; pointer-events: none;
-            z-index: 100; font-style: italic;
+        canvas {
+            display: block;
+            border: 2px solid var(--hot-pink);
+            border-top: none; border-bottom: none;
+            box-shadow: 0 0 40px rgba(255, 20, 147, 0.3);
+            touch-action: none;
         }
-        
-        canvas { border: 2px solid #333; border-top: none; touch-action: none; }
 
-        /* Instructions Modal */
-        #modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); display: none; z-index: 1000;
-            justify-content: center; align-items: center; padding: 20px;
+        /* Power + Fire control panel */
+        #controls {
+            width: 100%;
+            max-width: 600px;
+            padding: 8px 14px 12px;
+            display: flex; flex-direction: column; align-items: stretch;
+            gap: 10px;
+            flex-shrink: 0;
+            background: linear-gradient(180deg, rgba(26, 11, 61, 0.9), rgba(10, 4, 32, 0.95));
+            border-top: 2px solid var(--hot-pink);
+            box-shadow: 0 -4px 20px rgba(255, 20, 147, 0.25);
         }
-        #modal {
-            background: #1a1a1a; padding: 25px; width: 100%; max-width: 400px;
-            border: 2px solid var(--neon); border-radius: 8px;
+        #power-meter {
+            display: grid;
+            grid-template-columns: 60px 1fr 50px;
+            align-items: center;
+            gap: 10px;
         }
-        #modal h2 { color: var(--neon); margin-top: 0; font-size: 20px; }
-        #modal ul { padding-left: 20px; color: #ccc; font-size: 14px; line-height: 1.6; }
-        #modal li { margin-bottom: 10px; }
+        .power-label {
+            font-family: 'Bungee', cursive;
+            font-size: 11px;
+            color: var(--cyan);
+            letter-spacing: 2px;
+            text-shadow: 0 0 8px var(--cyan);
+        }
+        .power-track {
+            position: relative;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .power-zones {
+            position: absolute; inset: 0;
+            display: grid;
+            grid-template-columns: 30% 30% 25% 15%;
+        }
+        .power-zones > div {
+            border-right: 1px dashed rgba(255, 255, 255, 0.07);
+        }
+        .power-zones > div:last-child { border-right: none; }
+        .power-fill {
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 0%;
+            background: linear-gradient(90deg, #ff3838, #ffb938 30%, #39ff14 60%, #00f0ff 90%, var(--magenta));
+            box-shadow: 0 0 14px currentColor;
+            transition: width 0.05s linear;
+            border-radius: 12px 0 0 12px;
+        }
+        .power-marker {
+            position: absolute;
+            top: -2px; bottom: -2px;
+            width: 3px;
+            background: white;
+            box-shadow: 0 0 10px white, 0 0 20px var(--hot-pink);
+            transform: translateX(-1.5px);
+            transition: left 0.05s linear;
+            border-radius: 2px;
+        }
+        .power-value {
+            font-family: 'VT323', monospace;
+            font-size: 22px;
+            color: var(--gold);
+            text-align: right;
+            font-weight: bold;
+            text-shadow: 0 0 6px var(--gold);
+        }
+
+        #fire-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 10px;
+        }
+        .fire-tip {
+            font-size: 10px;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .fire-tip.left  { text-align: right; }
+        .fire-tip.right { text-align: left; }
+        .fire-tip strong { color: var(--cyan); display: block; font-family: 'Bungee'; font-size: 11px; }
+
+        #fire-btn {
+            position: relative;
+            width: 96px; height: 96px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            background: radial-gradient(circle at 35% 30%, #ff8a8a 0%, #e60012 40%, #8a0008 100%);
+            box-shadow:
+                0 0 0 4px var(--gold),
+                0 0 0 6px #6b4f00,
+                0 6px 18px rgba(230, 0, 18, 0.6),
+                inset 0 4px 12px rgba(255, 255, 255, 0.4),
+                inset 0 -8px 14px rgba(0, 0, 0, 0.5);
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+            color: white;
+            font-family: 'Bungee', cursive;
+            transition: transform 0.05s, box-shadow 0.05s;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+        #fire-btn::before {
+            content: '';
+            position: absolute;
+            top: 14%; left: 22%;
+            width: 30%; height: 18%;
+            background: radial-gradient(ellipse, rgba(255,255,255,0.6), transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        #fire-btn .fire-icon {
+            font-size: 26px;
+            line-height: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+        }
+        #fire-btn .fire-label {
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }
+        #fire-btn.firing {
+            transform: scale(0.94);
+            box-shadow:
+                0 0 0 4px var(--gold),
+                0 0 0 6px #6b4f00,
+                0 0 25px var(--imperial-red),
+                inset 0 2px 6px rgba(255, 255, 255, 0.3),
+                inset 0 -4px 10px rgba(0, 0, 0, 0.5);
+            animation: fire-pulse 0.2s linear infinite alternate;
+        }
+        @keyframes fire-pulse {
+            0%   { filter: brightness(1.0); }
+            100% { filter: brightness(1.2); }
+        }
+        #fire-btn:disabled, #fire-btn.disabled {
+            background: radial-gradient(circle at 35% 30%, #555 0%, #333 60%, #1a1a1a 100%);
+            box-shadow: 0 0 0 4px #444, 0 0 0 6px #222, inset 0 -8px 14px rgba(0, 0, 0, 0.5);
+            cursor: not-allowed;
+            color: #666;
+        }
+
+        /* Overlays */
+        .game-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 50;
+            text-align: center;
+        }
+        #fever-text {
+            font-family: 'Bungee', cursive;
+            font-size: 64px;
+            background: linear-gradient(180deg, var(--gold), var(--hot-pink), var(--magenta));
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px var(--magenta));
+            font-style: italic;
+            opacity: 0;
+            transition: opacity 0.3s;
+            letter-spacing: 3px;
+        }
+        #fever-text.show { opacity: 1; animation: fever-pop 0.5s ease; }
+        @keyframes fever-pop {
+            0%   { transform: translate(-50%, -50%) scale(0.5); }
+            50%  { transform: translate(-50%, -50%) scale(1.3); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .score-pop {
+            position: absolute;
+            font-family: 'Bungee', cursive;
+            font-size: 22px;
+            color: var(--gold);
+            text-shadow: 0 0 10px var(--gold);
+            pointer-events: none;
+            z-index: 60;
+            transform: translate(-50%, 0);
+            animation: pop-up 0.9s ease-out forwards;
+            white-space: nowrap;
+        }
+        .score-pop.pink  { color: var(--hot-pink); text-shadow: 0 0 10px var(--hot-pink); }
+        .score-pop.cyan  { color: var(--cyan);     text-shadow: 0 0 10px var(--cyan); }
+        .score-pop.green { color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); }
+        .score-pop.small { font-size: 16px; }
+        @keyframes pop-up {
+            0%   { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+            20%  { transform: translate(-50%, -10px) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -60px) scale(1); opacity: 0; }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(5, 2, 16, 0.85);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center; justify-content: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: linear-gradient(135deg, var(--bg-mid), var(--bg-card));
+            border: 2px solid var(--hot-pink);
+            box-shadow: 0 0 50px rgba(255, 20, 147, 0.4);
+            border-radius: 14px;
+            padding: 24px;
+            max-width: 420px; width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-box h2 {
+            font-family: 'Bungee', cursive;
+            margin: 0 0 16px;
+            font-size: 20px;
+            background: linear-gradient(90deg, var(--gold), var(--hot-pink));
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        .modal-box ul { padding-left: 0; list-style: none; margin: 0 0 16px; }
+        .modal-box li {
+            padding: 8px 0 8px 28px;
+            font-size: 14px; line-height: 1.5;
+            position: relative;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+        .modal-box li:last-child { border-bottom: none; }
+        .modal-box li::before {
+            content: '◆'; position: absolute;
+            left: 6px; top: 8px;
+            color: var(--hot-pink);
+            font-size: 12px;
+        }
+        .modal-box li strong { color: var(--cyan); }
+        .modal-box li .gold { color: var(--gold); font-weight: 700; }
+
+        /* Achievement toast */
+        #ach-toast {
+            position: fixed;
+            top: 20px; left: 50%;
+            transform: translateX(-50%) translateY(-120px);
+            background: linear-gradient(135deg, var(--gold), var(--lantern));
+            color: var(--bg-deep);
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.5);
+            font-weight: 700;
+            font-size: 14px;
+            z-index: 2000;
+            transition: transform 0.5s cubic-bezier(.34,1.56,.64,1);
+            display: flex; align-items: center; gap: 10px;
+            max-width: 320px;
+        }
+        #ach-toast.show { transform: translateX(-50%) translateY(0); }
+        #ach-toast .icon { font-size: 24px; }
+        #ach-toast .t { font-family: 'Bungee', cursive; font-size: 11px; letter-spacing: 1px; }
+        #ach-toast .d { font-size: 12px; opacity: 0.8; }
+
+        /* Slot machine */
+        #slot-display {
+            position: absolute;
+            top: 38%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid var(--gold);
+            box-shadow: 0 0 40px var(--gold);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: none;
+            z-index: 90;
+            pointer-events: none;
+        }
+        #slot-display.show { display: block; }
+        .slot-reels { display: flex; gap: 8px; margin-bottom: 8px; }
+        .slot-reel {
+            width: 50px; height: 60px;
+            background: linear-gradient(180deg, #1a0b3d, #0a0420);
+            border: 2px solid var(--cyan);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px;
+            overflow: hidden;
+            position: relative;
+        }
+        .slot-reel.spin .slot-inner { animation: reel-spin 0.08s linear infinite; }
+        .slot-inner { display: flex; flex-direction: column; transition: transform 0.5s cubic-bezier(.17,.67,.36,1.16); }
+        .slot-inner > div { height: 60px; display: flex; align-items: center; justify-content: center; }
+        @keyframes reel-spin {
+            0%   { transform: translateY(0); }
+            100% { transform: translateY(-60px); }
+        }
+        .slot-label {
+            font-family: 'Bungee', cursive;
+            color: var(--gold);
+            text-align: center;
+            font-size: 13px;
+            letter-spacing: 2px;
+        }
+
+        .footer {
+            margin-top: auto;
+            padding: 16px 0 8px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-dim);
+            font-family: 'VT323', monospace;
+            letter-spacing: 2px;
+        }
+        .footer span { color: var(--hot-pink); }
+
+        /* Game over screen */
+        .gameover-score {
+            font-family: 'Bungee', cursive;
+            font-size: clamp(50px, 14vw, 80px);
+            background: linear-gradient(180deg, var(--gold), var(--hot-pink));
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            line-height: 1;
+            margin: 12px 0;
+            filter: drop-shadow(0 0 15px rgba(255, 20, 147, 0.5));
+        }
+        .gameover-label {
+            font-family: 'Bungee', cursive;
+            font-size: 14px; color: var(--cyan);
+            letter-spacing: 4px; text-align: center;
+            text-transform: uppercase;
+        }
+        .new-record-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--gold), var(--lantern));
+            color: var(--bg-deep);
+            font-family: 'Bungee', cursive;
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 2px;
+            margin: 8px auto;
+            animation: badge-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes badge-pulse {
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.08); box-shadow: 0 0 20px var(--gold); }
+        }
+
+        .tabs {
+            display: flex; gap: 6px;
+            margin-bottom: 12px;
+            width: 100%; max-width: 420px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: var(--text-dim);
+            font-family: 'Bungee', cursive;
+            font-size: 11px;
+            letter-spacing: 1px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, var(--hot-pink), var(--magenta));
+            color: white;
+            border-color: var(--hot-pink);
+            box-shadow: 0 0 15px rgba(255, 20, 147, 0.4);
+        }
+
+        .confirm-text {
+            text-align: center;
+            margin: 10px 0 16px;
+            font-size: 14px; color: var(--text-soft); line-height: 1.5;
+        }
+
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .toggle-row .lbl { font-size: 14px; font-weight: 600; }
+        .toggle {
+            width: 44px; height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 20px; height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: left 0.2s;
+        }
+        .toggle.on { background: var(--hot-pink); }
+        .toggle.on::after { left: 22px; }
+
+        .welcome-art {
+            font-family: 'Noto Sans JP', sans-serif;
+            font-weight: 900;
+            font-size: 80px;
+            color: var(--hot-pink);
+            opacity: 0.15;
+            position: absolute;
+            top: 5%; right: -10px;
+            transform: rotate(8deg);
+            pointer-events: none;
+            text-shadow: 0 0 30px var(--hot-pink);
+            z-index: -1;
+        }
+
+        /* Mobile narrow tweaks */
+        @media (max-width: 380px) {
+            .hud-stat .v { font-size: 18px; }
+            .hud-stat .l { font-size: 8px; }
+            #hud { padding: 6px; }
+            #fire-btn { width: 84px; height: 84px; }
+            #fire-btn .fire-icon { font-size: 22px; }
+            .fire-tip { font-size: 9px; }
+            #power-meter { grid-template-columns: 50px 1fr 42px; gap: 8px; }
+        }
+        @media (max-height: 700px) {
+            #fire-btn { width: 78px; height: 78px; }
+            #fire-btn .fire-icon { font-size: 20px; }
+            #fire-btn .fire-label { font-size: 8px; margin-top: 2px; }
+            #controls { gap: 6px; padding: 6px 12px 8px; }
+            .power-track { height: 20px; }
+            .power-value, .power-label { font-size: 18px; }
+            #hud { padding: 4px 6px; }
+            .hud-stat .v { font-size: 18px; }
+        }
     </style>
 </head>
 <body>
+    <div id="bg-stars"></div>
 
-    <div id="ui">
-        <div class="stat"><div class="label">Best</div><div class="value" id="highScoreVal">0</div></div>
-        <div class="stat"><div class="label">Score</div><div class="value" id="scoreVal">0</div></div>
-        <div class="stat"><div class="label">Balls</div><div class="value" id="ballsLeft">10</div></div>
-        <button class="btn" onclick="toggleModal(true)">?</button>
+    <!-- ============== MENU ============== -->
+    <div id="menu-screen" class="screen active">
+        <div class="welcome-art">パチンコ</div>
+        <div class="title-block">
+            <div class="title-jp">ネオン パチンコ</div>
+            <div class="title-main">PACHINKO</div>
+            <div class="title-sub">★ Tokyo Nights Edition ★</div>
+        </div>
+
+        <div class="card">
+            <h3>Player</h3>
+            <label class="field-label" for="player-name">Pilot Name</label>
+            <input class="field-input" id="player-name" type="text" maxlength="14" placeholder="Enter your name…" autocomplete="off" />
+            <div style="height:10px"></div>
+            <button class="btn btn-primary btn-block" onclick="Game.start()">▶ Play</button>
+        </div>
+
+        <div class="card">
+            <h3>Quick Stats</h3>
+            <div class="stats-grid" id="quick-stats"></div>
+        </div>
+
+        <div class="btn-row" style="width:100%; max-width:420px;">
+            <button class="btn btn-secondary" onclick="UI.show('leaderboard-screen'); UI.renderLeaderboard()">🏆 Leaderboard</button>
+            <button class="btn btn-secondary" onclick="UI.show('stats-screen'); UI.renderStats()">📊 Stats</button>
+        </div>
+        <div class="btn-row" style="width:100%; max-width:420px;">
+            <button class="btn btn-ghost" onclick="UI.openModal('how-to-modal')">❓ How to Play</button>
+            <button class="btn btn-ghost" onclick="UI.show('settings-screen'); UI.renderSettings()">⚙ Settings</button>
+        </div>
+
+        <div class="footer">© NEON PACHINKO <span>★</span> 2026</div>
     </div>
 
-    <div id="game-wrapper">
-        <div id="fever-overlay">FEVER!</div>
+    <!-- ============== GAME ============== -->
+    <div id="game-screen" class="screen">
+        <div id="hud">
+            <button class="hud-btn" onclick="Game.pause()" title="Menu">≡</button>
+            <div class="hud-stat balls"><div class="l">Balls</div><div class="v" id="hud-balls">250</div></div>
+            <div class="hud-stat score"><div class="l">Score</div><div class="v" id="hud-score">0</div></div>
+            <div class="hud-stat combo" id="hud-combo-wrap"><div class="l">Combo</div><div class="v" id="hud-combo">x1</div></div>
+            <div class="hud-stat"><div class="l">Best</div><div class="v" id="hud-best">0</div></div>
+        </div>
+        <div id="game-stage">
+            <div id="game-wrapper">
+                <div class="game-overlay" id="fever-text">FEVER!</div>
+                <div id="slot-display">
+                    <div class="slot-reels">
+                        <div class="slot-reel" id="reel-0"><div class="slot-inner"><div>🌸</div><div>⭐</div><div>💎</div><div>🌸</div></div></div>
+                        <div class="slot-reel" id="reel-1"><div class="slot-inner"><div>⭐</div><div>💎</div><div>🌸</div><div>⭐</div></div></div>
+                        <div class="slot-reel" id="reel-2"><div class="slot-inner"><div>💎</div><div>🌸</div><div>⭐</div><div>💎</div></div></div>
+                    </div>
+                    <div class="slot-label" id="slot-label">SPINNING…</div>
+                </div>
+            </div>
+        </div>
+        <div id="controls">
+            <div id="power-meter">
+                <div class="power-label">POWER</div>
+                <div class="power-track">
+                    <div class="power-zones">
+                        <div></div><div></div><div></div><div></div>
+                    </div>
+                    <div class="power-fill" id="power-fill"></div>
+                    <div class="power-marker" id="power-marker"></div>
+                </div>
+                <div class="power-value" id="power-value">0%</div>
+            </div>
+            <div id="fire-row">
+                <div class="fire-tip left"><strong>HOLD</strong>to fire</div>
+                <button id="fire-btn" type="button">
+                    <span class="fire-icon">▶</span>
+                    <span class="fire-label">FIRE</span>
+                </button>
+                <div class="fire-tip right"><strong>TIME</strong>your power</div>
+            </div>
+        </div>
     </div>
 
-    <div id="modal-overlay" onclick="toggleModal(false)">
-        <div id="modal" onclick="event.stopPropagation()">
-            <h2>HOW TO PLAY</h2>
+    <!-- ============== GAME OVER ============== -->
+    <div id="gameover-screen" class="screen center">
+        <div class="card" style="text-align:center;">
+            <div class="gameover-label">Round Complete</div>
+            <div id="new-record-wrap"></div>
+            <div class="gameover-score" id="final-score">0</div>
+            <div class="stats-grid" id="round-stats"></div>
+            <div style="height:14px"></div>
+            <button class="btn btn-primary btn-block" onclick="Game.restart()">▶ Play Again</button>
+            <div style="height:8px"></div>
+            <button class="btn btn-ghost btn-block" onclick="UI.show('menu-screen'); UI.renderQuickStats()">◀ Main Menu</button>
+        </div>
+    </div>
+
+    <!-- ============== LEADERBOARD ============== -->
+    <div id="leaderboard-screen" class="screen">
+        <div class="title-block">
+            <div class="title-jp">ランキング</div>
+            <div class="title-main" style="font-size:32px">LEADERBOARD</div>
+        </div>
+        <div class="card">
+            <h3>Top 10 Scores</h3>
+            <div id="leaderboard-list"></div>
+        </div>
+        <div style="width:100%; max-width:420px;">
+            <button class="btn btn-ghost btn-block" onclick="UI.show('menu-screen')">◀ Back</button>
+        </div>
+    </div>
+
+    <!-- ============== STATS ============== -->
+    <div id="stats-screen" class="screen">
+        <div class="title-block">
+            <div class="title-jp">統計</div>
+            <div class="title-main" style="font-size:32px">YOUR STATS</div>
+        </div>
+        <div class="tabs">
+            <div class="tab active" data-tab="lifetime" onclick="UI.switchTab('lifetime')">Lifetime</div>
+            <div class="tab" data-tab="achievements" onclick="UI.switchTab('achievements')">Achievements</div>
+        </div>
+        <div class="card" id="tab-lifetime">
+            <h3>Career Numbers</h3>
+            <div class="stats-grid" id="lifetime-grid"></div>
+        </div>
+        <div class="card" id="tab-achievements" style="display:none;">
+            <h3>Achievements</h3>
+            <div id="ach-list"></div>
+        </div>
+        <div style="width:100%; max-width:420px;">
+            <button class="btn btn-ghost btn-block" onclick="UI.show('menu-screen')">◀ Back</button>
+        </div>
+    </div>
+
+    <!-- ============== SETTINGS ============== -->
+    <div id="settings-screen" class="screen">
+        <div class="title-block">
+            <div class="title-jp">設定</div>
+            <div class="title-main" style="font-size:32px">SETTINGS</div>
+        </div>
+        <div class="card">
+            <h3>Audio & FX</h3>
+            <div class="toggle-row"><span class="lbl">Sound Effects</span><div class="toggle" id="toggle-sound" onclick="UI.toggleSetting('sound')"></div></div>
+            <div class="toggle-row"><span class="lbl">Sakura Petals</span><div class="toggle" id="toggle-sakura" onclick="UI.toggleSetting('sakura')"></div></div>
+            <div class="toggle-row"><span class="lbl">Particles</span><div class="toggle" id="toggle-particles" onclick="UI.toggleSetting('particles')"></div></div>
+        </div>
+        <div class="card">
+            <h3>Data</h3>
+            <button class="btn btn-ghost btn-block" onclick="UI.confirmReset()" style="color:var(--hot-pink); border-color:var(--hot-pink);">🗑 Reset All Progress</button>
+        </div>
+        <div style="width:100%; max-width:420px;">
+            <button class="btn btn-ghost btn-block" onclick="UI.show('menu-screen')">◀ Back</button>
+        </div>
+    </div>
+
+    <!-- ============== MODALS ============== -->
+    <div class="modal-overlay" id="how-to-modal" onclick="UI.closeModal('how-to-modal')">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h2>How to Play</h2>
             <ul>
-                <li><strong>Tap</strong> the board to drop a ball.</li>
-                <li>You have <strong>10 balls</strong> per round.</li>
-                <li><strong>Neon Bumpers</strong> kick balls with extra force.</li>
-                <li>Land in the <strong>500 Center</strong> for <strong>FEVER MODE</strong>.</li>
-                <li>Fever Mode: +5 Balls & 2x Points!</li>
+                <li>Start with <span class="gold">250 balls</span>. Land them in scoring buckets to earn points and earn more balls.</li>
+                <li><strong>POWER</strong> oscillates left ↔ right automatically. The marker shows your current power.</li>
+                <li><strong>HOLD the FIRE button</strong> 🔴 to launch balls from the spout at the top. Power = launch speed = where the ball arcs.</li>
+                <li>Aim for buckets — easy ones near the spout give few points & 1 ball; <span class="gold">corner pockets</span> are hardest but pay <span class="gold">+1500 pts & +15 balls</span>.</li>
+                <li>🌷 <strong>Tulips</strong> open & close. Hit one open for <span class="gold">+800 pts & +10 balls</span>.</li>
+                <li>🎰 The <span class="gold">CENTER JACKPOT</span> spins the slot machine — match symbols for huge bonuses & FEVER mode.</li>
+                <li>Hit consecutive scoring objects for a <strong>combo</strong> multiplier up to <span class="gold">x5</span>.</li>
+                <li>✨ <strong>Gold balls</strong> spawn randomly — they're worth <span class="gold">2x points</span>.</li>
+                <li>Balls that fall to the bottom drain are <span style="color: var(--imperial-red);">lost</span>. Game ends when you run out.</li>
             </ul>
-            <button class="btn" style="width:100%; padding: 15px; margin-top:10px; border-color: var(--neon);" onclick="toggleModal(false)">START GAME</button>
+            <button class="btn btn-primary btn-block" onclick="UI.closeModal('how-to-modal')">Got it!</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="pause-modal" onclick="UI.closeModal('pause-modal')">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h2>Paused</h2>
+            <button class="btn btn-primary btn-block" onclick="Game.resume()">▶ Resume</button>
+            <div style="height:8px"></div>
+            <button class="btn btn-ghost btn-block" onclick="Game.quit()">Quit Round</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirm-modal" onclick="UI.closeModal('confirm-modal')">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h2 id="confirm-title">Confirm</h2>
+            <div class="confirm-text" id="confirm-text"></div>
+            <div class="btn-row">
+                <button class="btn btn-ghost" onclick="UI.closeModal('confirm-modal')">Cancel</button>
+                <button class="btn btn-primary" id="confirm-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ach-toast">
+        <div class="icon" id="toast-icon">🏆</div>
+        <div>
+            <div class="t">Achievement Unlocked</div>
+            <div class="d" id="toast-text">…</div>
         </div>
     </div>
 
     <script>
-        const config = {
-            width: 600, height: 800,
-            pinRadius: 3, ballRadius: 7, bumperRadius: 20,
-            rows: 16, cols: 20, initialBalls: 10,
-            bucketTop: 720
-        };
+    // =========================================================
+    // SAVE
+    // =========================================================
+    const STORE_KEY = 'neon_pachinko_save_v2';
 
-        let score = 0, ballsLeft = config.initialBalls, activeBalls = 0;
-        let isFever = false, feverTimer = null;
-        let highScore = localStorage.getItem('ultra_pachinko_best') || 0;
-
-        document.getElementById('highScoreVal').innerText = highScore;
-
-        const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
-        const engine = Engine.create();
-        engine.positionIterations = 10; 
-        engine.velocityIterations = 10;
-
-        const render = Render.create({
-            element: document.getElementById('game-wrapper'),
-            engine: engine,
-            options: { width: config.width, height: config.height, wireframes: false, background: '#050505' }
-        });
-
-        Render.run(render);
-        Runner.run(Runner.create(), engine);
-
-        // Environment
-        Composite.add(engine.world, [
-            Bodies.rectangle(300, 0, 600, 20, { isStatic: true, render: { fillStyle: '#222' } }),
-            Bodies.rectangle(0, 400, 20, 800, { isStatic: true, render: { fillStyle: '#222' } }),
-            Bodies.rectangle(600, 400, 20, 800, { isStatic: true, render: { fillStyle: '#222' } })
-        ]);
-
-        const bumpers = [{x:120, y:200}, {x:480, y:200}, {x:300, y:380}, {x:150, y:580}, {x:450, y:580}].map(p => 
-            Bodies.circle(p.x, p.y, config.bumperRadius, {
-                isStatic: true, restitution: 1.8, label: 'bumper',
-                render: { fillStyle: '#000', strokeStyle: '#00ffcc', lineWidth: 4 }
-            })
-        );
-        Composite.add(engine.world, bumpers);
-
-        const spacingX = config.width / config.cols;
-        const spacingY = 40;
-        for (let r = 0; r < config.rows; r++) {
-            const y = 120 + r * spacingY;
-            if (y >= config.bucketTop) continue;
-            for (let c = 0; c < config.cols; c++) {
-                let x = c * spacingX + spacingX/2;
-                if (r % 2) x += spacingX/2;
-                if (x > 30 && x < 570 && !bumpers.some(b => Math.hypot(b.position.x-x, b.position.y-y) < 45)) {
-                    Composite.add(engine.world, Bodies.circle(x, y, config.pinRadius, {
-                        isStatic: true, restitution: 0.8, label: 'pin', render: { fillStyle: '#333' }
-                    }));
+    const Save = {
+        data: null,
+        defaults() {
+            return {
+                playerName: '',
+                settings: { sound: true, sakura: true, particles: true },
+                lifetime: {
+                    totalScore: 0, totalBalls: 0, games: 0,
+                    feverCount: 0, jackpotCount: 0, tulipCatches: 0,
+                    bestCombo: 0, bestScore: 0, cornerHits: 0
+                },
+                leaderboard: [],
+                achievements: {}
+            };
+        },
+        load() {
+            try {
+                const raw = localStorage.getItem(STORE_KEY);
+                if (raw) {
+                    this.data = Object.assign(this.defaults(), JSON.parse(raw));
+                    this.data.lifetime = Object.assign(this.defaults().lifetime, this.data.lifetime || {});
+                    this.data.settings = Object.assign(this.defaults().settings, this.data.settings || {});
+                } else {
+                    this.data = this.defaults();
                 }
+            } catch (e) { this.data = this.defaults(); }
+        },
+        save() {
+            try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); }
+            catch (e) { console.warn('Save failed:', e); }
+        },
+        reset() { this.data = this.defaults(); this.save(); },
+        addLeaderboard(name, score) {
+            this.data.leaderboard.push({ name, score, date: Date.now() });
+            this.data.leaderboard.sort((a, b) => b.score - a.score);
+            this.data.leaderboard = this.data.leaderboard.slice(0, 10);
+        }
+    };
+    Save.load();
+
+    // =========================================================
+    // ACHIEVEMENTS
+    // =========================================================
+    const ACHIEVEMENTS = [
+        { id: 'first_round',   icon: '🎯', t: 'First Launch',   d: 'Play your first round' },
+        { id: 'first_fever',   icon: '🔥', t: 'Fever Pitch',    d: 'Trigger Fever Mode' },
+        { id: 'first_jackpot', icon: '🎰', t: 'Slot Master',    d: 'Hit the slot machine jackpot' },
+        { id: 'first_tulip',   icon: '🌷', t: 'Bloom',          d: 'Catch an open tulip' },
+        { id: 'corner_pocket', icon: '🎯', t: 'Sharpshooter',   d: 'Land in a corner pocket' },
+        { id: 'combo_5',       icon: '⚡', t: 'Combo King',     d: 'Reach a x5 combo' },
+        { id: 'score_5k',      icon: '⭐', t: 'High Roller',    d: 'Score 5,000 in one round' },
+        { id: 'score_25k',     icon: '💎', t: 'Pachinko Pro',   d: 'Score 25,000 in one round' },
+        { id: 'score_75k',     icon: '👑', t: 'Master Pachinko',d: 'Score 75,000 in one round' },
+        { id: 'gold_ball',     icon: '✨', t: 'Golden Touch',   d: 'Score with a gold ball' },
+        { id: 'lifetime_10',   icon: '🏯', t: 'Veteran',        d: 'Play 10 rounds' },
+        { id: 'lifetime_500k', icon: '🗼', t: 'Tokyo Legend',   d: 'Earn 500,000 lifetime points' }
+    ];
+
+    function unlockAch(id) {
+        if (Save.data.achievements[id]) return;
+        const a = ACHIEVEMENTS.find(x => x.id === id);
+        if (!a) return;
+        Save.data.achievements[id] = true;
+        Save.save();
+        showAchToast(a);
+        Audio.play('achievement');
+    }
+    function showAchToast(a) {
+        const t = document.getElementById('ach-toast');
+        document.getElementById('toast-icon').textContent = a.icon;
+        document.getElementById('toast-text').textContent = a.t + ' — ' + a.d;
+        t.classList.add('show');
+        clearTimeout(showAchToast._t);
+        showAchToast._t = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    // =========================================================
+    // AUDIO (Web Audio synth)
+    // =========================================================
+    const Audio = {
+        ctx: null,
+        init() {
+            if (this.ctx) return;
+            try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch (e) {}
+        },
+        play(type) {
+            if (!Save.data.settings.sound) return;
+            this.init();
+            if (!this.ctx) return;
+            const ctx = this.ctx;
+            if (ctx.state === 'suspended') ctx.resume();
+            const now = ctx.currentTime;
+            const tone = (freq, dur, vol = 0.15, wave = 'sine', startOffset = 0) => {
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.type = wave;
+                o.frequency.value = freq;
+                g.gain.value = 0;
+                g.gain.setValueAtTime(0, now + startOffset);
+                g.gain.linearRampToValueAtTime(vol, now + startOffset + 0.005);
+                g.gain.exponentialRampToValueAtTime(0.001, now + startOffset + dur);
+                o.connect(g).connect(ctx.destination);
+                o.start(now + startOffset);
+                o.stop(now + startOffset + dur);
+            };
+            switch (type) {
+                case 'pin':       tone(800 + Math.random()*200, 0.04, 0.03, 'square'); break;
+                case 'bumper':    tone(440, 0.08, 0.10, 'square'); tone(660, 0.08, 0.06, 'sawtooth', 0.02); break;
+                case 'launch':    tone(180, 0.04, 0.06, 'square'); tone(360, 0.03, 0.04, 'sine', 0.01); break;
+                case 'bucket':    [523, 659, 784].forEach((f,i) => tone(f, 0.15, 0.10, 'sine', i*0.05)); break;
+                case 'cornerWin': [523, 659, 784, 1046, 1318].forEach((f,i) => tone(f, 0.18, 0.13, 'sine', i*0.05)); break;
+                case 'tulip':     [659, 880, 1100].forEach((f,i) => tone(f, 0.12, 0.10, 'triangle', i*0.04)); break;
+                case 'jackpot':   [523, 659, 784, 1046, 1318].forEach((f,i) => tone(f, 0.2, 0.13, 'square', i*0.07)); break;
+                case 'fever':     [392, 523, 659, 784, 1046].forEach((f,i) => tone(f, 0.25, 0.13, 'sawtooth', i*0.08)); break;
+                case 'drain':     tone(200, 0.06, 0.04, 'sawtooth'); tone(140, 0.10, 0.04, 'sine', 0.04); break;
+                case 'achievement': [659, 784, 988, 1318].forEach((f,i) => tone(f, 0.18, 0.12, 'triangle', i*0.06)); break;
+                case 'gameover':  tone(330, 0.2, 0.10, 'sawtooth'); tone(247, 0.3, 0.10, 'sawtooth', 0.15); tone(165, 0.4, 0.10, 'sawtooth', 0.35); break;
             }
         }
+    };
 
-        const buckets = [5, 20, 100, 500, 100, 20, 5].map((s, i) => {
-            const w = config.width / 7;
-            const x = i * w + w/2;
-            const sensor = Bodies.rectangle(x, 785, w-10, 30, { 
-                isStatic: true, isSensor: true, label: 'bucket', scoreVal: s,
-                render: { fillStyle: s === 500 ? '#ffcc00' : '#00ffcc', opacity: 0.2 } 
-            });
-            Composite.add(engine.world, [
-                sensor, 
-                Bodies.rectangle(x-w/2, 750, 4, 120, { isStatic: true, render: { fillStyle: '#222' }})
-            ]);
-            return sensor;
-        });
+    // =========================================================
+    // SAKURA
+    // =========================================================
+    let sakuraInterval = null;
+    function startSakura() {
+        stopSakura();
+        if (!Save.data.settings.sakura) return;
+        const spawn = () => {
+            const p = document.createElement('div');
+            p.className = 'sakura';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.animationDuration = (8 + Math.random() * 6) + 's';
+            p.style.opacity = 0.4 + Math.random() * 0.4;
+            p.style.transform = `scale(${0.6 + Math.random() * 0.6})`;
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 14000);
+        };
+        for (let i = 0; i < 5; i++) setTimeout(spawn, Math.random() * 8000);
+        sakuraInterval = setInterval(spawn, 1200);
+    }
+    function stopSakura() {
+        if (sakuraInterval) clearInterval(sakuraInterval);
+        sakuraInterval = null;
+        document.querySelectorAll('.sakura').forEach(el => el.remove());
+    }
 
-        Events.on(render, 'afterRender', () => {
-            const ctx = render.context;
+    // =========================================================
+    // CONFIG
+    // =========================================================
+    const config = {
+        width: 600, height: 800,
+        pinRadius: 3, ballRadius: 7,
+        initialBalls: 250,
+        spoutX: 60, spoutY: 70,
+        drainY: 770,
+        maxActiveBalls: 28,
+        fireIntervalMs: 200
+    };
+
+    // =========================================================
+    // BUCKET DEFINITIONS — scattered across the playfield.
+    //   Easy buckets (close, low) give modest rewards.
+    //   Corner pockets are hardest but most lucrative.
+    // =========================================================
+    const BUCKET_DEFS = [
+        // Top-corner pockets - hardest. Need precise power timing.
+        { x:  62, y: 200, pts: 1500, balls: 15, color: '#ffd700', label: 'TL',  type: 'corner', mouth: 26 },
+        { x: 538, y: 200, pts: 1500, balls: 15, color: '#ffd700', label: 'TR',  type: 'corner', mouth: 26 },
+        // Top-center upper bucket - thread the gap, medium-hard
+        { x: 300, y: 200, pts:  750, balls:  8, color: '#9b6dff', label: 'TC',  type: 'upper',  mouth: 28 },
+        // Mid-side buckets
+        { x:  72, y: 500, pts:  500, balls:  5, color: '#ff1493', label: 'ML',  type: 'side',   mouth: 30 },
+        { x: 528, y: 500, pts:  500, balls:  5, color: '#ff1493', label: 'MR',  type: 'side',   mouth: 30 },
+        // Lower-mid scattered pockets
+        { x: 200, y: 660, pts:  200, balls:  2, color: '#00f0ff', label: 'L1',  type: 'low',    mouth: 30 },
+        { x: 400, y: 660, pts:  200, balls:  2, color: '#00f0ff', label: 'L2',  type: 'low',    mouth: 30 },
+        // Low corner consolations
+        { x: 100, y: 720, pts:  100, balls:  1, color: '#39ff14', label: 'LC1', type: 'low',    mouth: 28 },
+        { x: 500, y: 720, pts:  100, balls:  1, color: '#39ff14', label: 'LC2', type: 'low',    mouth: 28 }
+    ];
+
+    const TULIP_DEFS = [
+        { x: 180, y: 380 },
+        { x: 420, y: 380 }
+    ];
+
+    const BUMPER_DEFS = [
+        { x: 300, y: 310, r: 17, pts: 50, color: { fill: '#1f0010', stroke: '#ff1493', glow: '#ff1493' } },
+        { x: 130, y: 580, r: 16, pts: 30, color: { fill: '#001a1f', stroke: '#00f0ff', glow: '#00f0ff' } },
+        { x: 470, y: 580, r: 16, pts: 30, color: { fill: '#001a1f', stroke: '#00f0ff', glow: '#00f0ff' } }
+    ];
+
+    // =========================================================
+    // PARTICLES
+    // =========================================================
+    const Particles = {
+        items: [],
+        spawn(x, y, color, count = 8, opts = {}) {
+            if (!Save.data.settings.particles) return;
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 1 + Math.random() * 4;
+                this.items.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 1,
+                    life: 1, color,
+                    size: opts.size || (2 + Math.random() * 3),
+                    decay: opts.decay || 0.03
+                });
+            }
+        },
+        update() {
+            for (let i = this.items.length - 1; i >= 0; i--) {
+                const p = this.items[i];
+                p.x += p.vx; p.y += p.vy;
+                p.vy += 0.15;
+                p.life -= p.decay;
+                if (p.life <= 0) this.items.splice(i, 1);
+            }
+        },
+        draw(ctx) {
             ctx.save();
-            buckets.forEach(b => {
-                const color = b.scoreVal === 500 ? '#ffcc00' : '#00ffcc';
-                ctx.shadowBlur = 15; ctx.shadowColor = color;
-                ctx.fillStyle = color; ctx.globalAlpha = 1.0;
-                ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center';
-                ctx.fillText(isFever ? b.scoreVal * 2 : b.scoreVal, b.position.x, b.position.y - 15);
+            this.items.forEach(p => {
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 10; ctx.shadowColor = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                ctx.fill();
             });
             ctx.restore();
-        });
+        },
+        clear() { this.items = []; }
+    };
 
-        Events.on(engine, 'collisionStart', (event) => {
-            event.pairs.forEach(pair => {
-                const pin = pair.bodyA.label === 'pin' || pair.bodyA.label === 'bumper' ? pair.bodyA : (pair.bodyB.label === 'pin' || pair.bodyB.label === 'bumper' ? pair.bodyB : null);
-                if (pin) {
-                    pin.render.fillStyle = '#fff';
-                    setTimeout(() => pin.render.fillStyle = pin.label === 'bumper' ? '#000' : '#333', 70);
+    // =========================================================
+    // GAME
+    // =========================================================
+    const Game = {
+        engine: null, render: null, runner: null,
+        state: 'menu',
+        score: 0, ballsLeft: 250, activeBalls: 0,
+        isFever: false, feverTimer: null,
+        combo: 0, comboTimer: null,
+        roundStats: { ballsFired: 0, fever: 0, jackpots: 0, tulips: 0, bestCombo: 0, gold: 0, corners: 0 },
+
+        bumpers: [], buckets: [], tulips: [], jackpotZone: null,
+        slotSpinning: false,
+
+        // Power oscillation state
+        power: 0, powerDir: 1, powerSpeed: 1.4,
+
+        // Firing state
+        isFiring: false, fireTimer: null,
+
+        pins: [],
+
+        start() {
+            const nameEl = document.getElementById('player-name');
+            let name = (nameEl.value || '').trim() || Save.data.playerName || 'Player';
+            name = name.slice(0, 14);
+            Save.data.playerName = name;
+            Save.save();
+            nameEl.value = name;
+
+            this.score = 0;
+            this.ballsLeft = config.initialBalls;
+            this.activeBalls = 0;
+            this.isFever = false;
+            this.combo = 0;
+            this.power = 0; this.powerDir = 1;
+            this.isFiring = false;
+            this.roundStats = { ballsFired: 0, fever: 0, jackpots: 0, tulips: 0, bestCombo: 0, gold: 0, corners: 0 };
+
+            UI.show('game-screen');
+            this.setupPhysics();
+            this.updateHUD();
+            handleResize();
+            Audio.init();
+        },
+
+        restart() { this.cleanupPhysics(); this.start(); },
+
+        quit() {
+            this.stopFiring();
+            this.cleanupPhysics();
+            UI.closeModal('pause-modal');
+            UI.show('menu-screen');
+            UI.renderQuickStats();
+        },
+
+        pause() {
+            if (this.state !== 'playing') return;
+            this.stopFiring();
+            if (this.runner) this.runner.enabled = false;
+            this.state = 'paused';
+            UI.openModal('pause-modal');
+        },
+
+        resume() {
+            UI.closeModal('pause-modal');
+            if (this.state === 'paused') {
+                if (this.runner) this.runner.enabled = true;
+                this.state = 'playing';
+            }
+        },
+
+        cleanupPhysics() {
+            this.stopFiring();
+            if (this.runner) Matter.Runner.stop(this.runner);
+            if (this.render) {
+                Matter.Render.stop(this.render);
+                if (this.render.canvas && this.render.canvas.parentNode) {
+                    this.render.canvas.parentNode.removeChild(this.render.canvas);
                 }
-                const ball = pair.bodyA.label === 'ball' ? pair.bodyA : (pair.bodyB.label === 'ball' ? pair.bodyB : null);
-                const bucket = pair.bodyA.label === 'bucket' ? pair.bodyA : (pair.bodyB.label === 'bucket' ? pair.bodyB : null);
-                if (ball && bucket) {
-                    score += isFever ? bucket.scoreVal * 2 : bucket.scoreVal;
-                    document.getElementById('scoreVal').innerText = score;
-                    if (bucket.scoreVal === 500) startFever();
-                    Composite.remove(engine.world, ball);
-                    activeBalls--;
-                    if (ballsLeft === 0 && activeBalls === 0) endGame();
+                this.render.canvas = null; this.render.context = null; this.render.textures = {};
+            }
+            if (this.engine) Matter.Engine.clear(this.engine);
+            this.engine = this.render = this.runner = null;
+            this.bumpers = []; this.buckets = []; this.tulips = []; this.jackpotZone = null; this.pins = [];
+            Particles.clear();
+            if (this.feverTimer) { clearTimeout(this.feverTimer); this.feverTimer = null; }
+            if (this.comboTimer) { clearTimeout(this.comboTimer); this.comboTimer = null; }
+            document.body.classList.remove('fever');
+            document.getElementById('fever-text').classList.remove('show');
+            document.getElementById('slot-display').classList.remove('show');
+        },
+
+        setupPhysics() {
+            const { Engine, Render, Runner, Bodies, Composite, Events } = Matter;
+            const engine = Engine.create();
+            engine.positionIterations = 10;
+            engine.velocityIterations = 10;
+            this.engine = engine;
+
+            const render = Render.create({
+                element: document.getElementById('game-wrapper'),
+                engine: engine,
+                options: {
+                    width: config.width, height: config.height,
+                    wireframes: false, background: 'transparent'
                 }
             });
-        });
+            this.render = render;
+            render.canvas.style.background = 'radial-gradient(ellipse at center, #1a0b3d 0%, #0a0420 80%), linear-gradient(180deg, #15082e, #0a0420)';
 
-        function startFever() {
-            if (isFever) return;
-            isFever = true; ballsLeft += 5;
-            document.getElementById('ballsLeft').innerText = ballsLeft;
-            document.getElementById('ui').classList.add('fever-active');
-            document.getElementById('fever-overlay').style.display = 'block';
-            clearTimeout(feverTimer);
-            feverTimer = setTimeout(() => {
-                isFever = false;
-                document.getElementById('ui').classList.remove('fever-active');
-                document.getElementById('fever-overlay').style.display = 'none';
-            }, 10000);
-        }
+            Render.run(render);
+            this.runner = Runner.run(engine);
+            this.state = 'playing';
 
-        function endGame() {
-            if (score > highScore) {
-                localStorage.setItem('ultra_pachinko_best', score);
-                alert("NEW RECORD: " + score);
-            } else { alert("GAME OVER! Score: " + score); }
-            location.reload();
-        }
+            // Walls
+            Composite.add(engine.world, [
+                Bodies.rectangle(300, -10, 620, 20, { isStatic: true, render: { fillStyle: '#1a0b3d' } }),
+                Bodies.rectangle(-10, 400, 20, 820, { isStatic: true, render: { fillStyle: '#1a0b3d' } }),
+                Bodies.rectangle(610, 400, 20, 820, { isStatic: true, render: { fillStyle: '#1a0b3d' } }),
+                Bodies.rectangle(300, 810, 620, 20, { isStatic: true, render: { fillStyle: '#1a0b3d' } })
+            ]);
 
-        function toggleModal(show) {
-            document.getElementById('modal-overlay').style.display = show ? 'flex' : 'none';
-        }
+            // Spout-rail: tiny ramp near the spout for a stable launch direction
+            Composite.add(engine.world, [
+                Bodies.rectangle(38, 78, 30, 4, { isStatic: true, angle: -0.05, render: { fillStyle: '#3d1d5e' } })
+            ]);
 
-        // --- Optimized Scaling & Input for Mobile ---
-        function handleResize() {
-            const wrapper = document.getElementById('game-wrapper');
-            const availableHeight = window.innerHeight - document.getElementById('ui').offsetHeight - 20;
-            const scale = Math.min(window.innerWidth / 620, availableHeight / 820);
-            wrapper.style.transform = `scale(${scale})`;
-        }
-        window.addEventListener('resize', handleResize);
-        window.addEventListener('load', handleResize);
-
-        function handleInput(e) {
-            if (ballsLeft <= 0 || document.getElementById('modal-overlay').style.display === 'flex') return;
-            if (e.target.tagName === 'BUTTON') return;
-
-            const rect = render.canvas.getBoundingClientRect();
-            const scale = rect.width / config.width;
-            
-            // Handle both Mouse and Touch
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const x = (clientX - rect.left) / scale;
-
-            if (x > 20 && x < 580) {
-                const ball = Bodies.circle(x, 40, config.ballRadius, { 
-                    restitution: 0.5, label: 'ball', render: { fillStyle: '#fff' } 
+            // Bumpers
+            this.bumpers = BUMPER_DEFS.map(d => {
+                const b = Bodies.circle(d.x, d.y, d.r, {
+                    isStatic: true,
+                    restitution: 1.7,
+                    label: 'bumper',
+                    render: { fillStyle: d.color.fill, strokeStyle: d.color.stroke, lineWidth: 4 }
                 });
-                Composite.add(engine.world, ball);
-                ballsLeft--; activeBalls++;
-                document.getElementById('ballsLeft').innerText = ballsLeft;
+                b.bumperData = { pts: d.pts, color: d.color, hitFlash: 0, r: d.r };
+                return b;
+            });
+            Composite.add(engine.world, this.bumpers);
+
+            // Tulips (sensors only - drawn manually)
+            this.tulips = TULIP_DEFS.map((t, idx) => {
+                const sensor = Bodies.rectangle(t.x, t.y, 22, 14, {
+                    isStatic: true, isSensor: true, label: 'tulip',
+                    render: { fillStyle: 'transparent' }
+                });
+                sensor.tulipIdx = idx;
+                Composite.add(engine.world, sensor);
+                return {
+                    body: sensor, x: t.x, y: t.y,
+                    isOpen: Math.random() > 0.5,
+                    timer: 0, _a: 0,
+                    nextSwitch: 2 + Math.random() * 2
+                };
+            });
+
+            // Center jackpot
+            this.jackpotZone = Bodies.rectangle(300, 590, 56, 18, {
+                isStatic: true, isSensor: true, label: 'jackpot',
+                render: { fillStyle: 'transparent' }
+            });
+            Composite.add(engine.world, this.jackpotZone);
+
+            // Scattered scoring buckets (sensor + side walls forming a "cup")
+            this.buckets = BUCKET_DEFS.map((d) => {
+                const wallH = 22, wallT = 4;
+                const left  = Bodies.rectangle(d.x - d.mouth/2, d.y, wallT, wallH, {
+                    isStatic: true, render: { fillStyle: d.color, opacity: 0.6 }
+                });
+                const right = Bodies.rectangle(d.x + d.mouth/2, d.y, wallT, wallH, {
+                    isStatic: true, render: { fillStyle: d.color, opacity: 0.6 }
+                });
+                const sensor = Bodies.rectangle(d.x, d.y + 2, d.mouth - 6, 10, {
+                    isStatic: true, isSensor: true, label: 'bucket',
+                    render: { fillStyle: 'transparent' }
+                });
+                sensor.bucketData = d;
+                Composite.add(engine.world, [left, right, sensor]);
+                return { sensor, def: d, left, right };
+            });
+
+            // Pin field — generated with proper clearance from features.
+            // Skip pins near buckets/tulips/bumpers/jackpot to prevent stuck-ball wedges.
+            // No pins below drainY so balls have a clear path to drain.
+            this.pins = [];
+            const features = [];
+            BUCKET_DEFS.forEach(d => features.push({ x: d.x, y: d.y, r: (d.mouth / 2) + 22 }));
+            BUMPER_DEFS.forEach(d => features.push({ x: d.x, y: d.y, r: d.r + 24 }));
+            TULIP_DEFS.forEach(d => features.push({ x: d.x, y: d.y, r: 32 }));
+            features.push({ x: 300, y: 590, r: 52 });
+
+            const rowSpacing = 38;
+            const colSpacing = 38;
+            const yStart = 130, yEnd = 740;
+            for (let row = 0, y = yStart; y <= yEnd; row++, y += rowSpacing) {
+                if (y > config.drainY - 8) continue; // keep drain channel clear
+                const offset = row % 2 === 0 ? 0 : colSpacing / 2;
+                for (let x = 30 + offset; x <= 570; x += colSpacing) {
+                    const jx = x + (Math.random() - 0.5) * 6;
+                    const jy = y + (Math.random() - 0.5) * 4;
+                    if (jx < 32 || jx > 568) continue;
+                    if (features.some(f => Math.hypot(f.x - jx, f.y - jy) < f.r)) continue;
+                    const pin = Bodies.circle(jx, jy, config.pinRadius, {
+                        isStatic: true, restitution: 0.75, label: 'pin',
+                        render: { fillStyle: '#5a3580' }
+                    });
+                    this.pins.push(pin);
+                }
             }
+            Composite.add(engine.world, this.pins);
+
+            Events.on(render, 'afterRender', () => this.afterRender());
+            let lastUpdate = performance.now();
+            Events.on(engine, 'beforeUpdate', () => {
+                const now = performance.now();
+                const dt = Math.min(0.05, (now - lastUpdate) / 1000);
+                lastUpdate = now;
+
+                // Power oscillation
+                this.power += this.powerDir * this.powerSpeed;
+                if (this.power >= 100) { this.power = 100; this.powerDir = -1; }
+                if (this.power <= 0)   { this.power = 0;   this.powerDir = 1;  }
+                this.updatePowerMeter();
+
+                // Tulip timers
+                this.tulips.forEach(t => {
+                    t.timer += dt;
+                    if (t.timer >= t.nextSwitch) {
+                        t.isOpen = !t.isOpen;
+                        t.timer = 0;
+                        t.nextSwitch = t.isOpen ? 1.8 + Math.random() * 1.2 : 2.5 + Math.random() * 2;
+                    }
+                });
+
+                Particles.update();
+                this.checkBalls();
+            });
+
+            Events.on(engine, 'collisionStart', (e) => this.handleCollisions(e));
+        },
+
+        // ---- Power Meter UI ----
+        updatePowerMeter() {
+            const fill = document.getElementById('power-fill');
+            const marker = document.getElementById('power-marker');
+            const val = document.getElementById('power-value');
+            if (!fill) return;
+            fill.style.width = this.power + '%';
+            marker.style.left = this.power + '%';
+            val.textContent = Math.round(this.power) + '%';
+        },
+
+        // ---- Firing ----
+        startFiring() {
+            if (this.state !== 'playing') return;
+            if (this.isFiring) return;
+            this.isFiring = true;
+            const btn = document.getElementById('fire-btn');
+            if (btn) btn.classList.add('firing');
+            this.tryFire();
+            this.fireTimer = setInterval(() => this.tryFire(), config.fireIntervalMs);
+        },
+        stopFiring() {
+            this.isFiring = false;
+            const btn = document.getElementById('fire-btn');
+            if (btn) btn.classList.remove('firing');
+            if (this.fireTimer) { clearInterval(this.fireTimer); this.fireTimer = null; }
+        },
+        tryFire() {
+            if (!this.isFiring) return;
+            if (this.state !== 'playing') return this.stopFiring();
+            if (this.ballsLeft <= 0) return this.stopFiring();
+            if (this.activeBalls >= config.maxActiveBalls) return; // soft cap; will retry
+            this.fireBall(this.power);
+        },
+        fireBall(power) {
+            const isGold = Math.random() < 0.10;
+            const ball = Matter.Bodies.circle(config.spoutX, config.spoutY, config.ballRadius, {
+                restitution: 0.45,
+                friction: 0.005,
+                density: 0.002,
+                label: 'ball',
+                render: {
+                    fillStyle: isGold ? '#ffd700' : '#ffffff',
+                    strokeStyle: isGold ? '#ffaa00' : '#aaccff',
+                    lineWidth: 1.5
+                }
+            });
+            ball.isGold = isGold;
+            ball.spawnTime = performance.now();
+            ball.stuckTime = 0;
+            // Power = horizontal launch speed. Slight downward bias.
+            const vx = 3 + (power / 100) * 14;
+            const vy = -0.8 + Math.random() * 0.6;
+            Matter.Body.setVelocity(ball, { x: vx, y: vy });
+            Matter.Composite.add(this.engine.world, ball);
+            this.ballsLeft--;
+            this.activeBalls++;
+            this.roundStats.ballsFired++;
+            Save.data.lifetime.totalBalls++;
+            Audio.play('launch');
+            this.updateHUD();
+        },
+
+        // ---- Stuck/drained ball detection ----
+        checkBalls() {
+            const bodies = Matter.Composite.allBodies(this.engine.world);
+            const toRemove = [];
+            const now = performance.now();
+            for (const b of bodies) {
+                if (b.label !== 'ball') continue;
+                const age = (now - (b.spawnTime || now)) / 1000;
+                const speed = Math.hypot(b.velocity.x, b.velocity.y);
+
+                // Drain: fell past drain line
+                if (b.position.y > config.drainY) {
+                    toRemove.push({ ball: b, reason: 'drain' });
+                    continue;
+                }
+                // OOB safety
+                if (b.position.x < -20 || b.position.x > 620) {
+                    toRemove.push({ ball: b, reason: 'oob' });
+                    continue;
+                }
+                // Stuck detection (only after settling)
+                if (age > 1.0 && speed < 0.4) {
+                    b.stuckTime = (b.stuckTime || 0) + 1;
+                    if (b.stuckTime === 60) {
+                        // Gentle nudge
+                        Matter.Body.setVelocity(b, {
+                            x: (Math.random() - 0.5) * 5,
+                            y: -2 - Math.random() * 2
+                        });
+                    } else if (b.stuckTime === 130) {
+                        // Stronger nudge
+                        Matter.Body.setVelocity(b, {
+                            x: (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 3),
+                            y: -3
+                        });
+                    } else if (b.stuckTime > 200) {
+                        // Give up - remove silently
+                        toRemove.push({ ball: b, reason: 'stuck' });
+                    }
+                } else {
+                    b.stuckTime = 0;
+                }
+            }
+            for (const { ball, reason } of toRemove) {
+                if (reason === 'drain') {
+                    Audio.play('drain');
+                    Particles.spawn(ball.position.x, config.drainY, '#444466', 4, { size: 2, decay: 0.04 });
+                }
+                Matter.Composite.remove(this.engine.world, ball);
+                this.activeBalls--;
+            }
+            if (toRemove.length > 0) this.checkEndGame();
+        },
+
+        afterRender() {
+            const ctx = this.render.context;
+            const t = performance.now() / 1000;
+            ctx.save();
+
+            // Top banner area
+            ctx.fillStyle = '#15082e';
+            ctx.fillRect(0, 0, config.width, 110);
+            const grd = ctx.createLinearGradient(0, 95, 0, 130);
+            grd.addColorStop(0, 'rgba(255, 20, 147, 0.5)');
+            grd.addColorStop(1, 'rgba(255, 20, 147, 0)');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 95, config.width, 35);
+
+            // Spout — chrome tube with glow
+            const sx = config.spoutX, sy = config.spoutY;
+            ctx.save();
+            ctx.shadowBlur = 14; ctx.shadowColor = '#00f0ff';
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sx - 16, sy - 12, 32, 24);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(sx - 14, sy - 10, 28, 20);
+            ctx.shadowBlur = 0;
+            const chrome = ctx.createLinearGradient(sx - 14, sy - 10, sx + 14, sy + 10);
+            chrome.addColorStop(0, 'rgba(255,255,255,0.4)');
+            chrome.addColorStop(0.5, 'rgba(255,255,255,0.05)');
+            chrome.addColorStop(1, 'rgba(0,240,255,0.3)');
+            ctx.fillStyle = chrome;
+            ctx.fillRect(sx - 14, sy - 10, 28, 6);
+            // Direction arrow
+            ctx.fillStyle = '#ff1493';
+            ctx.beginPath();
+            ctx.moveTo(sx + 10, sy);
+            ctx.lineTo(sx + 18, sy - 4);
+            ctx.lineTo(sx + 18, sy + 4);
+            ctx.closePath();
+            ctx.fill();
+            // Subtle "SPOUT" label
+            ctx.font = 'bold 8px "Bungee", sans-serif';
+            ctx.fillStyle = 'rgba(0,240,255,0.8)';
+            ctx.textAlign = 'center';
+            ctx.fillText('SPOUT', sx, sy + 24);
+            ctx.restore();
+
+            // Title kanji
+            ctx.font = '900 24px "Noto Sans JP", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.85)';
+            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 14;
+            ctx.fillText('パチンコ', config.width / 2 + 30, 50);
+            ctx.shadowBlur = 0;
+            ctx.font = '700 10px "Bungee", sans-serif';
+            ctx.fillStyle = '#00f0ff';
+            ctx.fillText('★ NEON ARCADE ★', config.width / 2 + 30, 72);
+
+            // Side trim lights
+            ctx.shadowColor = '#ff9500'; ctx.shadowBlur = 12;
+            for (let i = 0; i < 7; i++) {
+                const ly = 140 + i * 90;
+                ctx.fillStyle = i % 2 ? '#ff9500' : '#ff1493';
+                ctx.beginPath(); ctx.arc(10, ly, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = i % 2 ? '#ff1493' : '#ff9500';
+                ctx.beginPath(); ctx.arc(config.width - 10, ly, 4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+
+            // Drain zone visual
+            ctx.save();
+            const drainGrad = ctx.createLinearGradient(0, config.drainY, 0, config.height);
+            drainGrad.addColorStop(0, 'rgba(230, 0, 18, 0.0)');
+            drainGrad.addColorStop(0.4, 'rgba(230, 0, 18, 0.3)');
+            drainGrad.addColorStop(1, 'rgba(60, 0, 5, 0.7)');
+            ctx.fillStyle = drainGrad;
+            ctx.fillRect(0, config.drainY, config.width, config.height - config.drainY);
+            // Drain teeth
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            for (let x = 8; x < config.width - 8; x += 18) {
+                ctx.beginPath();
+                ctx.moveTo(x, config.drainY);
+                ctx.lineTo(x + 9, config.drainY + 12);
+                ctx.lineTo(x + 18, config.drainY);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.font = 'bold 11px "Bungee", sans-serif';
+            ctx.fillStyle = 'rgba(230, 0, 18, 0.8)';
+            ctx.textAlign = 'center';
+            ctx.fillText('▼ DRAIN — BALLS LOST ▼', config.width / 2, config.height - 6);
+            ctx.restore();
+
+            // Bumpers
+            this.bumpers.forEach(b => {
+                const d = b.bumperData;
+                const pulse = 0.7 + 0.3 * Math.sin(t * 3 + b.position.x);
+                const glow = 12 + d.hitFlash * 20;
+                ctx.beginPath();
+                ctx.arc(b.position.x, b.position.y, d.r + 2, 0, Math.PI * 2);
+                ctx.shadowColor = d.color.glow;
+                ctx.shadowBlur = glow * pulse;
+                ctx.strokeStyle = d.color.stroke;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = d.color.stroke;
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(d.pts, b.position.x, b.position.y);
+                if (d.hitFlash > 0) d.hitFlash -= 0.06;
+            });
+
+            // Tulips
+            this.tulips.forEach(tul => {
+                ctx.save();
+                ctx.translate(tul.x, tul.y);
+                const targetA = tul.isOpen ? 0.9 : 0;
+                tul._a += (targetA - tul._a) * 0.18;
+                const a = tul._a;
+                ctx.fillStyle = '#2a8a4a';
+                ctx.fillRect(-2, 8, 4, 14);
+                if (a > 0.1) { ctx.shadowColor = '#ff6b9d'; ctx.shadowBlur = 16 + 6 * Math.sin(t * 6); }
+                ctx.fillStyle = tul.isOpen ? '#ff6b9d' : '#7a2055';
+                ctx.beginPath();
+                ctx.moveTo(0, 8);
+                ctx.quadraticCurveTo(-12 - a*6, -2, -3 - a*4, -10 - a*2);
+                ctx.quadraticCurveTo(-1, -4, 0, 8);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(0, 8);
+                ctx.quadraticCurveTo(12 + a*6, -2, 3 + a*4, -10 - a*2);
+                ctx.quadraticCurveTo(1, -4, 0, 8);
+                ctx.fill();
+                ctx.fillStyle = tul.isOpen ? '#ffb6d4' : '#a8316b';
+                ctx.beginPath();
+                ctx.moveTo(0, 8);
+                ctx.quadraticCurveTo(-3 - a, -4, 0, -12 - a*4);
+                ctx.quadraticCurveTo(3 + a, -4, 0, 8);
+                ctx.fill();
+                if (a > 0.3) {
+                    ctx.shadowBlur = 8; ctx.shadowColor = '#ffd700';
+                    ctx.fillStyle = '#ffd700';
+                    ctx.beginPath(); ctx.arc(0, -2, 2 + a, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.restore();
+            });
+
+            // Buckets — draw glowing rim + label
+            this.buckets.forEach(b => {
+                const d = b.def;
+                const pulse = 0.85 + 0.15 * Math.sin(t * 2 + d.x);
+                ctx.save();
+                const cupGrad = ctx.createLinearGradient(d.x - d.mouth/2, d.y - 12, d.x - d.mouth/2, d.y + 14);
+                cupGrad.addColorStop(0, d.color + '88');
+                cupGrad.addColorStop(0.5, d.color + '44');
+                cupGrad.addColorStop(1, d.color + '11');
+                ctx.fillStyle = cupGrad;
+                ctx.fillRect(d.x - d.mouth/2 + 2, d.y - 11, d.mouth - 4, 24);
+                ctx.shadowColor = d.color; ctx.shadowBlur = 14 * pulse;
+                ctx.fillStyle = d.color;
+                ctx.fillRect(d.x - d.mouth/2 - 1, d.y - 13, d.mouth + 2, 3);
+                ctx.shadowBlur = 0;
+                const display = this.isFever ? d.pts * 2 : d.pts;
+                ctx.font = 'bold 13px "Bungee", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = d.color;
+                ctx.shadowColor = d.color; ctx.shadowBlur = 6;
+                ctx.fillText(display, d.x, d.y - 1);
+                ctx.shadowBlur = 0;
+                ctx.font = 'bold 9px "Outfit", sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText('+' + d.balls + '⬤', d.x, d.y + 11);
+                ctx.restore();
+            });
+
+            // Center jackpot zone (visual cup)
+            ctx.save();
+            const jx = 300, jy = 590;
+            const jPulse = 0.8 + 0.2 * Math.sin(t * 4);
+            const aura = ctx.createRadialGradient(jx, jy, 5, jx, jy, 60);
+            aura.addColorStop(0, 'rgba(255, 215, 0, 0.35)');
+            aura.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            ctx.fillStyle = aura;
+            ctx.fillRect(jx - 60, jy - 60, 120, 120);
+            ctx.fillStyle = '#1a0b00';
+            ctx.fillRect(jx - 36, jy - 13, 72, 26);
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 18 * jPulse;
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(jx - 36, jy - 13, 72, 26);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 11px "Bungee", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🎰 JACKPOT', jx, jy);
+            ctx.restore();
+
+            // Side trim
+            ctx.fillStyle = '#3d1d5e';
+            ctx.fillRect(0, 0, 4, config.height);
+            ctx.fillRect(config.width - 4, 0, 4, config.height);
+
+            Particles.draw(ctx);
+            ctx.restore();
+        },
+
+        handleCollisions(event) {
+            event.pairs.forEach(pair => {
+                const aLabel = pair.bodyA.label, bLabel = pair.bodyB.label;
+                const ball = aLabel === 'ball' ? pair.bodyA : (bLabel === 'ball' ? pair.bodyB : null);
+                if (!ball) return;
+                const other = (ball === pair.bodyA) ? pair.bodyB : pair.bodyA;
+
+                if (other.label === 'pin') {
+                    other.render.fillStyle = '#fff';
+                    setTimeout(() => other.render.fillStyle = '#5a3580', 80);
+                    Audio.play('pin');
+                    Particles.spawn(other.position.x, other.position.y, '#ffffff', 2, { size: 2, decay: 0.06 });
+                }
+                else if (other.label === 'bumper') {
+                    const d = other.bumperData;
+                    d.hitFlash = 1;
+                    const pts = this.applyScore(d.pts, ball);
+                    this.bumpCombo();
+                    Particles.spawn(other.position.x, other.position.y, d.color.glow, 10, { size: 3 });
+                    this.popScore(other.position.x, other.position.y, '+' + pts, 'cyan');
+                    Audio.play('bumper');
+                }
+                else if (other.label === 'tulip') {
+                    const tul = this.tulips[other.tulipIdx];
+                    if (tul && tul.isOpen) {
+                        const pts = this.applyScore(800, ball);
+                        this.ballsLeft += 10;
+                        this.roundStats.tulips++;
+                        Save.data.lifetime.tulipCatches++;
+                        unlockAch('first_tulip');
+                        tul.isOpen = false;
+                        tul.timer = 0;
+                        tul.nextSwitch = 3;
+                        Particles.spawn(tul.x, tul.y, '#ff6b9d', 18, { size: 4 });
+                        Particles.spawn(tul.x, tul.y, '#ffd700', 8, { size: 3 });
+                        this.popScore(tul.x, tul.y - 22, '+' + pts + ' BLOOM!', 'pink');
+                        this.popScore(tul.x, tul.y, '+10⬤', 'green');
+                        Audio.play('tulip');
+                        Matter.Composite.remove(this.engine.world, ball);
+                        this.activeBalls--;
+                        this.bumpCombo();
+                        this.updateHUD();
+                        this.checkEndGame();
+                    }
+                }
+                else if (other.label === 'jackpot') {
+                    if (!this.slotSpinning) {
+                        Matter.Composite.remove(this.engine.world, ball);
+                        this.activeBalls--;
+                        this.spinSlots(ball.isGold);
+                    }
+                }
+                else if (other.label === 'bucket') {
+                    const d = other.bucketData;
+                    const pts = this.applyScore(d.pts, ball);
+                    this.ballsLeft += d.balls;
+                    if (d.type === 'corner') {
+                        this.roundStats.corners++;
+                        Save.data.lifetime.cornerHits++;
+                        unlockAch('corner_pocket');
+                        Audio.play('cornerWin');
+                        Particles.spawn(d.x, d.y, '#ffd700', 22, { size: 4 });
+                    } else {
+                        Audio.play('bucket');
+                        Particles.spawn(d.x, d.y, d.color, 12, { size: 3 });
+                    }
+                    this.popScore(d.x, d.y - 18, '+' + pts, 'gold');
+                    this.popScore(d.x, d.y, '+' + d.balls + '⬤', 'green');
+                    this.bumpCombo();
+                    Matter.Composite.remove(this.engine.world, ball);
+                    this.activeBalls--;
+                    this.updateHUD();
+                    this.checkEndGame();
+                }
+            });
+        },
+
+        applyScore(base, ball) {
+            let pts = base;
+            if (ball && ball.isGold) {
+                pts *= 2;
+                this.roundStats.gold++;
+                unlockAch('gold_ball');
+            }
+            if (this.isFever) pts *= 2;
+            if (this.combo > 0) pts = Math.round(pts * (1 + this.combo * 0.2));
+            this.score += pts;
+            this.updateHUD();
+            return pts;
+        },
+
+        bumpCombo() {
+            this.combo = Math.min(5, this.combo + 1);
+            this.roundStats.bestCombo = Math.max(this.roundStats.bestCombo, this.combo);
+            if (this.combo === 5) unlockAch('combo_5');
+            const wrap = document.getElementById('hud-combo-wrap');
+            const el = document.getElementById('hud-combo');
+            if (this.combo > 1) {
+                wrap.classList.add('show');
+                el.textContent = 'x' + this.combo;
+                wrap.style.animation = 'none';
+                wrap.offsetHeight;
+                wrap.style.animation = '';
+            }
+            clearTimeout(this.comboTimer);
+            this.comboTimer = setTimeout(() => {
+                this.combo = 0;
+                wrap.classList.remove('show');
+            }, 4000);
+        },
+
+        popScore(x, y, txt, kind) {
+            const wrap = document.getElementById('game-wrapper');
+            if (!wrap || !this.render || !this.render.canvas) return;
+            const el = document.createElement('div');
+            el.className = 'score-pop ' + (kind || '');
+            el.textContent = txt;
+            el.style.left = x + 'px';
+            el.style.top = y + 'px';
+            wrap.appendChild(el);
+            setTimeout(() => el.remove(), 950);
+        },
+
+        spinSlots(isGold) {
+            this.slotSpinning = true;
+            this.roundStats.jackpots++;
+            Save.data.lifetime.jackpotCount++;
+            unlockAch('first_jackpot');
+
+            const slot = document.getElementById('slot-display');
+            const label = document.getElementById('slot-label');
+            const reels = [0, 1, 2].map(i => document.getElementById('reel-' + i));
+
+            slot.classList.add('show');
+            label.textContent = 'SPINNING…';
+            reels.forEach(r => r.classList.add('spin'));
+            Audio.play('jackpot');
+
+            const symbols = ['🌸', '⭐', '💎', '🔔', '🍒'];
+            const finals = [
+                symbols[Math.floor(Math.random() * symbols.length)],
+                symbols[Math.floor(Math.random() * symbols.length)],
+                symbols[Math.floor(Math.random() * symbols.length)]
+            ];
+            const rand = Math.random();
+            if (rand < 0.30) { finals[1] = finals[0]; finals[2] = finals[0]; }
+            else if (rand < 0.60) { finals[1] = finals[0]; }
+
+            const stopReel = (i, delay) => {
+                setTimeout(() => {
+                    reels[i].classList.remove('spin');
+                    reels[i].querySelector('.slot-inner').innerHTML = `<div>${finals[i]}</div>`;
+                }, delay);
+            };
+            stopReel(0, 600);
+            stopReel(1, 1100);
+            stopReel(2, 1600);
+
+            setTimeout(() => {
+                let payout = 0, ballPayout = 0, msg = '', triggerFever = false;
+                const allMatch = finals[0] === finals[1] && finals[1] === finals[2];
+                const twoMatch = !allMatch && (finals[0] === finals[1] || finals[1] === finals[2] || finals[0] === finals[2]);
+                if (allMatch) {
+                    if (finals[0] === '💎')      { payout = 5000; ballPayout = 30; msg = 'MEGA JACKPOT!';     triggerFever = true; }
+                    else if (finals[0] === '⭐') { payout = 2500; ballPayout = 20; msg = 'BIG WIN!';          triggerFever = true; }
+                    else if (finals[0] === '🌸') { payout = 1500; ballPayout = 15; msg = 'BLOSSOM BONUS!';    triggerFever = true; }
+                    else if (finals[0] === '🔔') { payout = 1000; ballPayout = 12; msg = 'BELL RINGER!';      triggerFever = true; }
+                    else                         { payout =  750; ballPayout = 10; msg = 'CHERRY POP!'; }
+                } else if (twoMatch) { payout = 400; ballPayout = 6; msg = 'NICE PAIR!'; }
+                else                  { payout = 200; ballPayout = 3; msg = 'CONSOLATION'; }
+                if (isGold) payout *= 2;
+                if (this.isFever) payout *= 2;
+
+                this.score += payout;
+                this.ballsLeft += ballPayout;
+                this.updateHUD();
+                label.textContent = msg + ' +' + payout + ' / +' + ballPayout + '⬤';
+                Audio.play('jackpot');
+
+                Particles.spawn(300, 590, '#ffd700', 30, { size: 4 });
+
+                if (triggerFever) setTimeout(() => this.startFever(), 800);
+
+                setTimeout(() => {
+                    slot.classList.remove('show');
+                    this.slotSpinning = false;
+                    this.checkEndGame();
+                }, 1900);
+            }, 1700);
+        },
+
+        startFever() {
+            if (this.isFever) {
+                clearTimeout(this.feverTimer);
+            } else {
+                this.isFever = true;
+                this.roundStats.fever++;
+                Save.data.lifetime.feverCount++;
+                unlockAch('first_fever');
+                document.body.classList.add('fever');
+            }
+            const ft = document.getElementById('fever-text');
+            ft.classList.add('show');
+            Audio.play('fever');
+            this.updateHUD();
+            this.feverTimer = setTimeout(() => {
+                this.isFever = false;
+                document.body.classList.remove('fever');
+                ft.classList.remove('show');
+                this.updateHUD();
+            }, 12000);
+        },
+
+        updateHUD() {
+            document.getElementById('hud-score').textContent = this.score.toLocaleString();
+            document.getElementById('hud-balls').textContent = this.ballsLeft;
+            document.getElementById('hud-best').textContent = (Save.data.lifetime.bestScore || 0).toLocaleString();
+            const btn = document.getElementById('fire-btn');
+            if (btn) {
+                if (this.ballsLeft <= 0) btn.classList.add('disabled');
+                else btn.classList.remove('disabled');
+            }
+        },
+
+        checkEndGame() {
+            if (this.ballsLeft <= 0 && this.activeBalls === 0 && !this.slotSpinning) {
+                setTimeout(() => this.endGame(), 700);
+            }
+        },
+
+        endGame() {
+            if (this.state !== 'playing') return;
+            this.state = 'gameover';
+            this.stopFiring();
+            const lt = Save.data.lifetime;
+            lt.games++;
+            lt.totalScore += this.score;
+            lt.bestCombo = Math.max(lt.bestCombo, this.roundStats.bestCombo);
+            const isRecord = this.score > (lt.bestScore || 0);
+            if (isRecord) lt.bestScore = this.score;
+            Save.addLeaderboard(Save.data.playerName || 'Player', this.score);
+            unlockAch('first_round');
+            if (this.score >= 5000)   unlockAch('score_5k');
+            if (this.score >= 25000)  unlockAch('score_25k');
+            if (this.score >= 75000)  unlockAch('score_75k');
+            if (lt.games >= 10) unlockAch('lifetime_10');
+            if (lt.totalScore >= 500000) unlockAch('lifetime_500k');
+            Save.save();
+            Audio.play('gameover');
+
+            document.getElementById('final-score').textContent = this.score.toLocaleString();
+            document.getElementById('new-record-wrap').innerHTML =
+                isRecord ? '<div class="new-record-badge">★ NEW RECORD ★</div>' : '';
+            const rs = this.roundStats;
+            document.getElementById('round-stats').innerHTML = `
+                <div class="stat-tile pink"><div class="label">Balls Fired</div><div class="value">${rs.ballsFired}</div></div>
+                <div class="stat-tile gold"><div class="label">Best Combo</div><div class="value">x${rs.bestCombo}</div></div>
+                <div class="stat-tile"><div class="label">Fevers</div><div class="value">${rs.fever}</div></div>
+                <div class="stat-tile"><div class="label">Jackpots</div><div class="value">${rs.jackpots}</div></div>
+                <div class="stat-tile gold"><div class="label">Tulips</div><div class="value">${rs.tulips}</div></div>
+                <div class="stat-tile pink"><div class="label">Corner Pockets</div><div class="value">${rs.corners}</div></div>
+            `;
+            this.cleanupPhysics();
+            UI.show('gameover-screen');
         }
+    };
 
-        window.addEventListener('mousedown', handleInput);
-        window.addEventListener('touchstart', (e) => {
-            handleInput(e);
-            e.preventDefault(); // Prevents double firing with mousedown
-        }, { passive: false });
+    // =========================================================
+    // UI
+    // =========================================================
+    const UI = {
+        show(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const el = document.getElementById(id);
+            if (el) el.classList.add('active');
+            window.scrollTo(0, 0);
+        },
+        openModal(id) { document.getElementById(id).classList.add('active'); },
+        closeModal(id) { document.getElementById(id).classList.remove('active'); },
+        renderQuickStats() {
+            const lt = Save.data.lifetime;
+            document.getElementById('quick-stats').innerHTML = `
+                <div class="stat-tile gold"><div class="label">Best Score</div><div class="value">${(lt.bestScore || 0).toLocaleString()}</div></div>
+                <div class="stat-tile pink"><div class="label">Games</div><div class="value">${lt.games || 0}</div></div>
+                <div class="stat-tile"><div class="label">Total Points</div><div class="value">${(lt.totalScore || 0).toLocaleString()}</div></div>
+                <div class="stat-tile"><div class="label">Achievements</div><div class="value">${Object.keys(Save.data.achievements).length}/${ACHIEVEMENTS.length}</div></div>
+            `;
+            document.getElementById('player-name').value = Save.data.playerName || '';
+        },
+        renderLeaderboard() {
+            const list = document.getElementById('leaderboard-list');
+            const me = Save.data.playerName || '';
+            const lb = Save.data.leaderboard || [];
+            if (lb.length === 0) {
+                list.innerHTML = '<div class="empty-msg">No scores yet — play your first round!</div>';
+                return;
+            }
+            list.innerHTML = lb.map((s, i) => `
+                <div class="lb-row r${i+1} ${s.name === me ? 'me' : ''}">
+                    <div class="rank">${i+1}</div>
+                    <div class="name">${escapeHtml(s.name)}</div>
+                    <div class="score">${s.score.toLocaleString()}</div>
+                </div>
+            `).join('');
+        },
+        renderStats() {
+            const lt = Save.data.lifetime;
+            document.getElementById('lifetime-grid').innerHTML = `
+                <div class="stat-tile gold"><div class="label">Best Score</div><div class="value">${(lt.bestScore||0).toLocaleString()}</div></div>
+                <div class="stat-tile pink"><div class="label">Total Points</div><div class="value">${(lt.totalScore||0).toLocaleString()}</div></div>
+                <div class="stat-tile"><div class="label">Games Played</div><div class="value">${lt.games||0}</div></div>
+                <div class="stat-tile"><div class="label">Total Balls</div><div class="value">${(lt.totalBalls||0).toLocaleString()}</div></div>
+                <div class="stat-tile gold"><div class="label">Fevers</div><div class="value">${lt.feverCount||0}</div></div>
+                <div class="stat-tile pink"><div class="label">Jackpots</div><div class="value">${lt.jackpotCount||0}</div></div>
+                <div class="stat-tile"><div class="label">Tulip Catches</div><div class="value">${lt.tulipCatches||0}</div></div>
+                <div class="stat-tile gold"><div class="label">Best Combo</div><div class="value">x${lt.bestCombo||0}</div></div>
+                <div class="stat-tile pink"><div class="label">Corner Hits</div><div class="value">${lt.cornerHits||0}</div></div>
+            `;
+            document.getElementById('ach-list').innerHTML = ACHIEVEMENTS.map(a => `
+                <div class="ach-row ${Save.data.achievements[a.id] ? 'unlocked' : ''}">
+                    <div class="ach-icon">${a.icon}</div>
+                    <div class="ach-info"><div class="t">${a.t}</div><div class="d">${a.d}</div></div>
+                </div>
+            `).join('');
+        },
+        switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+            document.getElementById('tab-lifetime').style.display = name === 'lifetime' ? '' : 'none';
+            document.getElementById('tab-achievements').style.display = name === 'achievements' ? '' : 'none';
+        },
+        renderSettings() {
+            ['sound','sakura','particles'].forEach(k => {
+                const t = document.getElementById('toggle-' + k);
+                t.classList.toggle('on', !!Save.data.settings[k]);
+            });
+        },
+        toggleSetting(k) {
+            Save.data.settings[k] = !Save.data.settings[k];
+            Save.save();
+            this.renderSettings();
+            if (k === 'sakura') {
+                if (Save.data.settings.sakura) startSakura(); else stopSakura();
+            }
+        },
+        confirmReset() {
+            document.getElementById('confirm-title').textContent = 'Reset Progress?';
+            document.getElementById('confirm-text').textContent = 'This will erase all scores, stats, and achievements. This cannot be undone.';
+            const ok = document.getElementById('confirm-ok');
+            ok.textContent = 'Yes, Reset';
+            ok.onclick = () => {
+                Save.reset();
+                UI.closeModal('confirm-modal');
+                UI.renderSettings();
+                UI.show('menu-screen');
+                UI.renderQuickStats();
+            };
+            UI.openModal('confirm-modal');
+        }
+    };
 
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+    }
+
+    // =========================================================
+    // FIRE BUTTON INPUT
+    // =========================================================
+    function bindFireButton() {
+        const btn = document.getElementById('fire-btn');
+        if (!btn || btn._bound) return;
+        btn._bound = true;
+
+        const start = (e) => { e.preventDefault(); Game.startFiring(); };
+        const stop  = (e) => { if (e) e.preventDefault(); Game.stopFiring(); };
+
+        btn.addEventListener('mousedown',  start);
+        btn.addEventListener('mouseup',    stop);
+        btn.addEventListener('mouseleave', stop);
+        btn.addEventListener('touchstart', start, { passive: false });
+        btn.addEventListener('touchend',   stop,  { passive: false });
+        btn.addEventListener('touchcancel',stop,  { passive: false });
+        btn.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Safety: stop firing if the pointer is released anywhere
+        document.addEventListener('mouseup', () => Game.stopFiring());
+    }
+
+    // =========================================================
+    // RESIZE / SCALING
+    // =========================================================
+    function handleResize() {
+        const wrapper = document.getElementById('game-wrapper');
+        if (!wrapper) return;
+        const hud = document.getElementById('hud');
+        const controls = document.getElementById('controls');
+        const hudH = hud ? hud.offsetHeight : 50;
+        const controlsH = controls ? controls.offsetHeight : 140;
+        const vh = window.innerHeight;
+        const availableH = Math.max(200, vh - hudH - controlsH - 12);
+        const availableW = window.innerWidth;
+        const scaleW = availableW / (config.width + 4);
+        const scaleH = availableH / config.height;
+        const scale = Math.min(scaleW, scaleH, 1.5);
+        wrapper.style.transform = `scale(${scale})`;
+        wrapper.style.width = config.width + 'px';
+        wrapper.style.height = config.height + 'px';
+        // Reserve scaled height in the layout flow so controls don't overlap
+        const stage = document.getElementById('game-stage');
+        if (stage) stage.style.minHeight = (config.height * scale + 8) + 'px';
+    }
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', () => setTimeout(handleResize, 200));
+
+    // =========================================================
+    // BOOT
+    // =========================================================
+    UI.renderQuickStats();
+    if (Save.data.settings.sakura) startSakura();
+    bindFireButton();
+    if (Save.data.lifetime.games === 0 && !Save.data.playerName) {
+        setTimeout(() => UI.openModal('how-to-modal'), 500);
+    }
     </script>
 </body>
 </html>
